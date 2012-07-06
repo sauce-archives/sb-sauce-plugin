@@ -1,0 +1,17 @@
+{
+  "headerVersion": 1,
+  "pluginVersion": 1,
+  "builderMinVersion": 1,
+  "builderMaxVersion": 1,
+  "firefoxMinVersion": "3.6",
+  "firefoxMaxVersion": "14.*",
+  "identifier": "sauce",
+  "name": "Sauce Labs Integration",
+  "description": "Offers exporters and playback options for the Sauce Labs infrastructure.",
+  "siteUrl": "http://saucelabs.com/",
+  "shutdownFunction": "sauce.shutdown",
+  "load": [
+    "common.js",
+    "exporter.js"
+  ]
+}
