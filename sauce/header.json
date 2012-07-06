@@ -11,7 +11,6 @@
   "siteUrl": "http://saucelabs.com/",
   "shutdownFunction": "sauce.shutdown",
   "load": [
-    "common.js",
-    "exporter.js"
+    "plugin.js"
   ]
 }
