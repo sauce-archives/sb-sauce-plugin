@@ -23,36 +23,43 @@ sauce.settingspanel = {};
 /** The dialog. */
 sauce.settingspanel.dialog = null;
 
-sauce.settingspanel.show = function(callback) {
+sauce.settingspanel.show = function(callback, askForBrowserString) {
   if (sauce.settingspanel.dialog) { return; }
   var credentials = sauce.getCredentials();
   sauce.settingspanel.dialog =
     newNode('div', {'class': 'dialog'},
       newNode('h3', "Sauce Settings"),
-      newNode('ul',
-        newNode('li',
-          newNode('label', {'for': 'sauce-username'}, "Sauce Username"),
-          newNode('input', {'name': 'sauce-username', 'id': 'sauce-username', 'value': credentials.username})
+      newNode('table', {style: 'border: none;', id: 'rc-options-table'},
+        newNode('tr',
+          newNode('td', "Sauce Username "),
+          newNode('td', newNode('input', {id: 'sauce-username', type: 'text', value: credentials.username}))
         ),
-        newNode('li',
-          newNode('label', {'for': 'sauce-accesskey'}, "Sauce Access Key"),
-          newNode('input', {'name': 'sauce-accesskey', 'id': 'sauce-accesskey', 'value': credentials.accesskey})
+        newNode('tr',
+          newNode('td', "Sauce Access Key "),
+          newNode('td', newNode('input', {id: 'sauce-accesskey', type: 'text', value: credentials.accesskey}))
+        ),
+        newNode('tr',
+          newNode('td', "Browser "),
+          newNode('td', newNode('input', {id: 'sauce-browserstring', type: 'text', value: builder.selenium2.rcPlayback.getBrowserString()}))
         )
       ),
-      newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-cancel', 'click': function() {
-        sauce.settingspanel.hide();
-      }}, "Cancel"),
       newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-ok', 'click': function() {
         var username = jQuery('#sauce-username').val();
         var accesskey = jQuery('#sauce-accesskey').val();
         sauce.setCredentials(username, accesskey);
         sauce.settingspanel.hide();
         if (callback) {
-          callback({'username': username, 'accesskey': accesskey});
+          callback({'username': username, 'accesskey': accesskey, 'browserstring': jQuery('#sauce-browserstring').val()});
         }
-      }}, "OK")
+      }}, "OK"),
+      newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-cancel', 'click': function() {
+        sauce.settingspanel.hide();
+      }}, "Cancel")
     );
   builder.dialogs.show(sauce.settingspanel.dialog);
+  if (!askForBrowserString) {
+    jQuery('#sauce-browserstring').hide();
+  }
 };
 
 sauce.settingspanel.hide = function() {
@@ -60,7 +67,25 @@ sauce.settingspanel.hide = function() {
   sauce.settingspanel.dialog = null;
 };
 
-builder.gui.menu.addItem('file', 'Sauce Settings', sauce.settingspanel.show);
+builder.gui.menu.addItem('file', 'Sauce Settings', 'file-sauce-settings', sauce.settingspanel.show);
+
+builder.gui.menu.addItem('run', 'Run on Sauce OnDemand', 'run-sauce-ondemand', function() {
+  sauce.settingspanel.show(function(result) {
+    builder.selenium2.rcPlayback.run(
+      result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
+      result.browserstring
+    );
+  }, true);
+});
+
+builder.suite.addScriptChangeListener(function() {
+  var script = builder.getScript();
+  if (script && script.seleniumVersion === builder.selenium2) {
+    jQuery('#run-sauce-ondemand').show();
+  } else {
+    jQuery('#run-sauce-ondemand').hide();
+  }
+});
 
 // Add a Java exporter that talks to the Sauce infrastructure.
 // Shallow copy and modify the existing Java formatter.
