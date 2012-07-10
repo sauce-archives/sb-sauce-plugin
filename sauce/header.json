@@ -6,7 +6,7 @@
   "identifier": "sauce",
   "name": "Sauce for Se Builder",
   "description": "Enables export and playback on Sauce OnDemand.",
-  "siteUrl": "http://http://admc.github.com/SaucePlugin/",
+  "siteUrl": "http://admc.github.com/SaucePlugin/",
   "shutdownFunction": "sauce.shutdown",
   "load": [
     "plugin.js"
