@@ -23,7 +23,7 @@ sauce.settingspanel = {};
 /** The dialog. */
 sauce.settingspanel.dialog = null;
 
-sauce.settingspanel.show = function(callback, askForBrowserString) {
+sauce.settingspanel.show = function(callback) {
   if (sauce.settingspanel.dialog) { return; }
   var credentials = sauce.getCredentials();
   sauce.settingspanel.dialog =
@@ -46,10 +46,12 @@ sauce.settingspanel.show = function(callback, askForBrowserString) {
       newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-ok', 'click': function() {
         var username = jQuery('#sauce-username').val();
         var accesskey = jQuery('#sauce-accesskey').val();
+        var browserstring = jQuery('#sauce-browserstring').val();
         sauce.setCredentials(username, accesskey);
+        builder.selenium2.rcPlayback.setBrowserString(browserstring)
         sauce.settingspanel.hide();
         if (callback) {
-          callback({'username': username, 'accesskey': accesskey, 'browserstring': jQuery('#sauce-browserstring').val()});
+          callback({'username': username, 'accesskey': accesskey, 'browserstring': browserstring});
         }
       }}, "OK"),
       newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-cancel', 'click': function() {
@@ -57,9 +59,6 @@ sauce.settingspanel.show = function(callback, askForBrowserString) {
       }}, "Cancel")
     );
   builder.dialogs.show(sauce.settingspanel.dialog);
-  if (!askForBrowserString) {
-    jQuery('#sauce-browserstring').hide();
-  }
 };
 
 sauce.settingspanel.hide = function() {
@@ -75,7 +74,7 @@ builder.gui.menu.addItem('run', 'Run on Sauce OnDemand', 'run-sauce-ondemand', f
       result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
       result.browserstring
     );
-  }, true);
+  });
 });
 
 builder.suite.addScriptChangeListener(function() {
@@ -112,9 +111,7 @@ exporter_info.start =
   "\n" +
   "public class {name} {\n" +
   "    public static void main(String[] args) throws Exception {\n" +
-  "        DesiredCapabilities caps = DesiredCapabilities.firefox();\n" +
-  "            caps.setCapability(\"version\", \"5\");\n" +
-  "            caps.setCapability(\"platform\", Platform.XP);\n" +
+  "        DesiredCapabilities caps = DesiredCapabilities.{browserstring}();\n" +
   "            caps.setCapability(\"name\", \"{name}\");\n" +
   "        RemoteWebDriver wd = new RemoteWebDriver(\n" +
   "            new URL(\"http://{username}:{accesskey}@ondemand.saucelabs.com:80/wd/hub\"),\n" +
