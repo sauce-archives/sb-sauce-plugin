@@ -39,6 +39,10 @@ sauce.settingspanel.show = function(callback) {
           newNode('td', newNode('input', {id: 'sauce-accesskey', type: 'text', value: credentials.accesskey}))
         ),
         newNode('tr',
+          newNode('td', ""),
+          newNode('td', newNode('a', {'href': 'http://saucelabs.com/account/key', 'target': '_blank'}, "(look up access key)"))
+        ),
+        newNode('tr',
           newNode('td', "Browser "),
           newNode('td', newNode('input', {id: 'sauce-browserstring', type: 'text', value: builder.selenium2.rcPlayback.getBrowserString()}))
         )
@@ -48,7 +52,7 @@ sauce.settingspanel.show = function(callback) {
         var accesskey = jQuery('#sauce-accesskey').val();
         var browserstring = jQuery('#sauce-browserstring').val();
         sauce.setCredentials(username, accesskey);
-        builder.selenium2.rcPlayback.setBrowserString(browserstring)
+        builder.selenium2.rcPlayback.setBrowserString(browserstring);
         sauce.settingspanel.hide();
         if (callback) {
           callback({'username': username, 'accesskey': accesskey, 'browserstring': browserstring});
