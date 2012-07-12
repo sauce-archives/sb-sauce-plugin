@@ -73,10 +73,27 @@ sauce.settingspanel.hide = function() {
 builder.gui.menu.addItem('file', 'Sauce Settings', 'file-sauce-settings', sauce.settingspanel.show);
 
 builder.gui.menu.addItem('run', 'Run on Sauce OnDemand', 'run-sauce-ondemand', function() {
+  jQuery('#edit-rc-connecting').show();
   sauce.settingspanel.show(function(result) {
-    builder.selenium2.rcPlayback.run(
-      result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
-      result.browserstring
+    jQuery.ajax(
+      "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
+      {
+        success: function(ajresult) {
+          if (ajresult.minutes <= 0) {
+            jQuery('#edit-rc-connecting').hide();
+            alert("Your OnDemand account has run out of minutes.");
+          } else {
+            builder.selenium2.rcPlayback.run(
+              result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
+              result.browserstring
+            );
+          }
+        },
+        error: function(xhr, textStatus, errorThrown) {
+          jQuery('#edit-rc-connecting').hide();
+          alert("Unable to connect to OnDemand: " + errorThrown);
+        }
+      }
     );
   });
 });
