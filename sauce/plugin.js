@@ -35,7 +35,7 @@ sauce.settingspanel.show = function(callback) {
   if (sauce.settingspanel.dialog) { return; }
   jQuery('#edit-rc-connecting').show();
   jQuery.ajax(
-    "http://saucelabs.com/rest/v1/info/browsers",
+    "http://saucelabs.com/rest/v1/info/browsers/webdriver",
     {
       success: function(sauceBrowsers) {
         jQuery('#edit-rc-connecting').hide();
