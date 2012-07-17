@@ -74,7 +74,7 @@ sauce.settingspanel.show = function(callback) {
                   'username': username,
                   'accesskey': accesskey,
                   'browserstring': browser.api_name,
-                  'browserversion': browser.long_version,
+                  'browserversion': browser.short_version,
                   'platform': browser.os
                 });
               }
