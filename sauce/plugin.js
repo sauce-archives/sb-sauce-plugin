@@ -73,7 +73,7 @@ sauce.settingspanel.show = function(callback) {
                 callback({
                   'username': username,
                   'accesskey': accesskey,
-                  'browserstring': browser.selenium_name,
+                  'browserstring': browser.api_name,
                   'browserversion': browser.long_version,
                   'platform': browser.os
                 });
@@ -115,7 +115,7 @@ sauce.settingspanel.show = function(callback) {
 };
 
 sauce.browserOptionName = function(entry) {
-  return entry.long_name + " " + entry.long_version + " on " + entry.os;
+  return entry.long_name + " " + entry.short_version + " on " + entry.os;
 };
 
 sauce.settingspanel.hide = function() {
