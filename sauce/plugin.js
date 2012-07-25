@@ -27,6 +27,14 @@ sauce.setBrowser = function(browser) {
   bridge.prefManager.setCharPref("extensions.seleniumbuilder.plugins.sauce.browser", browser);
 };
 
+sauce.getAutoShowJobPage = function() {
+  return bridge.prefManager.prefHasUserValue("extensions.seleniumbuilder.plugins.sauce.autoshowjobpage") ? bridge.prefManager.getBoolPref("extensions.seleniumbuilder.plugins.sauce.autoshowjobpage") : true;
+};
+
+sauce.setAutoShowJobPage = function(asjp) {
+  bridge.prefManager.setBoolPref("extensions.seleniumbuilder.plugins.sauce.autoshowjobpage", asjp);
+};
+
 sauce.settingspanel = {};
 /** The dialog. */
 sauce.settingspanel.dialog = null;
@@ -59,6 +67,9 @@ sauce.settingspanel.show = function(callback) {
               newNode('tr',
                 newNode('td', "Browser "),
                 newNode('td', newNode('select', {'id': 'sauce-browser'}))
+              ),
+              newNode('tr',
+                newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-showjobpage'}), "Automatically show sauce jobs page")
               )
             ),
             newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-ok', 'click': function() {
@@ -68,6 +79,7 @@ sauce.settingspanel.show = function(callback) {
               var browser = sauceBrowsers[choice];
               sauce.setCredentials(username, accesskey);
               sauce.setBrowser(sauce.browserOptionName(browser));
+              sauce.setAutoShowJobPage(!!jQuery('#sauce-showjobpage').attr('checked'));
               sauce.settingspanel.hide();
               if (callback) {
                 callback({
@@ -84,6 +96,9 @@ sauce.settingspanel.show = function(callback) {
             }}, "Cancel")
           );
         builder.dialogs.show(sauce.settingspanel.dialog);
+        if (sauce.getAutoShowJobPage()) {
+          jQuery('#sauce-showjobpage').attr('checked', 'checked');
+        }
         // Populate dialog.
         var usedNames = {};
         var defaultName = sauce.getBrowser();
@@ -140,7 +155,21 @@ builder.gui.menu.addItem('run', 'Run on Sauce OnDemand', 'run-sauce-ondemand', f
               result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
               result.browserstring,
               result.browserversion,
-              result.platform
+              result.platform,
+              null,
+              // Start job callback
+              function(response) {
+                if (sauce.getAutoShowJobPage()) {
+                  window.open("https://saucelabs.com/jobs/" + response.sessionId,'_newtab');
+                } else {
+                  var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
+                    newNode('a', {'href': "https://saucelabs.com/jobs/" + response.sessionId, 'target': '_newtab'}, "Show job info")
+                  );
+                  builder.dialogs.show(lnk);
+                  var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
+                  builder.views.script.addClearResultsListener(hide);
+                }
+              }
             );
           }
         },
