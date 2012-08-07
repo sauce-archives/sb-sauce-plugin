@@ -1,10 +1,10 @@
 {
   "headerVersion": 1,
-  "pluginVersion": "1.0.2",
+  "pluginVersion": "1.0.3",
   "builderMinVersion": "2",
   "builderMaxVersion": "2.*",
   "identifier": "sauce",
-  "name": "Sauce for Se Builder",
+  "name": "Sauce for Selenium Builder",
   "description": "Enables export and playback on Sauce OnDemand.",
   "siteUrl": "http://admc.github.com/sb-sauce-plugin/",
   "shutdownFunction": "sauce.shutdown",

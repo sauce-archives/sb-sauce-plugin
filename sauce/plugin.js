@@ -54,7 +54,13 @@ sauce.settingspanel.show = function(callback) {
             newNode('table', {style: 'border: none;', id: 'rc-options-table'},
               newNode('tr',
                 newNode('td', "Sauce Username "),
-                newNode('td', newNode('input', {id: 'sauce-username', type: 'text', value: credentials.username}))
+                newNode('td', newNode('input', {id: 'sauce-username', type: 'text', value: credentials.username, 'change': function() {
+                  if (jQuery('#sauce-username').val() == "") {
+                    jQuery('#sauce-account-link').show();
+                  } else {
+                    jQuery('#sauce-account-link').hide();
+                  }
+                }}))
               ),
               newNode('tr',
                 newNode('td', "Sauce Access Key "),
@@ -63,6 +69,10 @@ sauce.settingspanel.show = function(callback) {
               newNode('tr',
                 newNode('td', ""),
                 newNode('td', newNode('a', {'href': 'http://saucelabs.com/account/key', 'target': '_blank'}, "(look up access key)"))
+              ),
+              newNode('tr', {'id': 'sauce-account-link'},
+                newNode('td', ""),
+                newNode('td', newNode('a', {'href': 'http://saucelabs.com/signup', 'target': '_blank'}, "(Don't have an account? Get one for free!)"))
               ),
               newNode('tr',
                 newNode('td', "Browser "),
@@ -100,6 +110,9 @@ sauce.settingspanel.show = function(callback) {
           jQuery('#sauce-showjobpage').attr('checked', 'checked');
         }
         // Populate dialog.
+        if (credentials.username != "") {
+          jQuery('#sauce-account-link').hide();
+        }
         var usedNames = {};
         var defaultName = sauce.getBrowser();
         for (var i = 0; i < sauceBrowsers.length; i++) {
