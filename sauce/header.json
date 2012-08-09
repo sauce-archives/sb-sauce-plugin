@@ -1,6 +1,6 @@
 {
   "headerVersion": 1,
-  "pluginVersion": "1.0.3",
+  "pluginVersion": "1.0.4",
   "builderMinVersion": "2",
   "builderMaxVersion": "2.*",
   "identifier": "sauce",
@@ -8,6 +8,7 @@
   "description": "Enables export and playback on Sauce OnDemand.",
   "siteUrl": "http://admc.github.com/sb-sauce-plugin/",
   "shutdownFunction": "sauce.shutdown",
+  "icon": "icon.png",
   "load": [
     "plugin.js"
   ]
