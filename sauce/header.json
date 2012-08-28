@@ -6,7 +6,7 @@
   "identifier": "sauce",
   "name": "Sauce for Selenium Builder",
   "description": "Enables export and playback on Sauce OnDemand.",
-  "siteUrl": "http://admc.github.com/sb-sauce-plugin/",
+  "siteUrl": "http://saucelabs.github.com/sb-sauce-plugin/",
   "shutdownFunction": "sauce.shutdown",
   "icon": "icon.png",
   "load": [
