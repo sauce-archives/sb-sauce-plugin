@@ -1,6 +1,36 @@
 // Init namespace.
 var sauce = {};
 
+// Strings
+// en-US
+var m = builder.translate.locales['en-US'].mapping;
+m.__sauce_settings = "Sauce Settings";
+m.__sauce_username = "Sauce Username";
+m.__sauce_access_key = "Sauce Access Key";
+m.__sauce_lookup_access_key = "look up access key";
+m.__sauce_get_account = "Don't have an account? Get one for free!";
+m.__sauce_browser = "Browser";
+m.__sauce_auto_show_job = "Automatically show Sauce jobs page";
+m.__sauce_connection_error = "Unable to connect to the Sauce servers: {0}";
+m.__sauce_on_os = "on";
+m.__sauce_run_ondemand = "Run on Sauce OnDemand";
+m.__sauce_account_exhausted = "Your OnDemand account has run out of minutes.";
+m.__sauce_ondemand_connection_error = "Unable to connect to OnDemand: {0}";
+// de
+m = builder.translate.locales['de'].mapping;
+m.__sauce_settings = "Sauce: Einstellungen";
+m.__sauce_username = "Sauce: Benutzername";
+m.__sauce_access_key = "Sauce: Access Key";
+m.__sauce_lookup_access_key = "Access Key abrufen ";
+m.__sauce_get_account = "Gratis bei Sauce anmelden!";
+m.__sauce_browser = "Browser";
+m.__sauce_auto_show_job = "Automatisch Abspiel-Details zeigen";
+m.__sauce_connection_error = "Verbindung zum Server fehlgeschlagen: {0}";
+m.__sauce_on_os = "auf";
+m.__sauce_run_ondemand = "Auf Sauce OnDemand abspielen";
+m.__sauce_account_exhausted = "Das OnDemand-Konto hat keine Minuten übrig.";
+m.__sauce_ondemand_connection_error = "Verbindung zum Server fehlgeschlagen: {0}";
+
 sauce.shutdown = function() {
 
 };
@@ -50,10 +80,10 @@ sauce.settingspanel.show = function(callback) {
         var credentials = sauce.getCredentials();
         sauce.settingspanel.dialog =
           newNode('div', {'class': 'dialog'},
-            newNode('h3', "Sauce Settings"),
+            newNode('h3', _t('__sauce_settings')),
             newNode('table', {style: 'border: none;', id: 'rc-options-table'},
               newNode('tr',
-                newNode('td', "Sauce Username "),
+                newNode('td', _t('__sauce_username') + " "),
                 newNode('td', newNode('input', {id: 'sauce-username', type: 'text', value: credentials.username, 'change': function() {
                   if (jQuery('#sauce-username').val() == "") {
                     jQuery('#sauce-account-link').show();
@@ -63,23 +93,23 @@ sauce.settingspanel.show = function(callback) {
                 }}))
               ),
               newNode('tr',
-                newNode('td', "Sauce Access Key "),
+                newNode('td', _t('__sauce_access_key') + " "),
                 newNode('td', newNode('input', {id: 'sauce-accesskey', type: 'text', value: credentials.accesskey}))
               ),
               newNode('tr',
                 newNode('td', ""),
-                newNode('td', newNode('a', {'href': 'http://saucelabs.com/account/key', 'target': '_blank'}, "(look up access key)"))
+                newNode('td', newNode('a', {'href': 'http://saucelabs.com/account/key', 'target': '_blank'}, "(" + _t('__sauce_lookup_access_key') + ")"))
               ),
               newNode('tr', {'id': 'sauce-account-link'},
                 newNode('td', ""),
-                newNode('td', newNode('a', {'href': 'http://saucelabs.com/signup', 'target': '_blank'}, "(Don't have an account? Get one for free!)"))
+                newNode('td', newNode('a', {'href': 'http://saucelabs.com/signup', 'target': '_blank'}, "(" + _t('__sauce_get_account') + ")"))
               ),
               newNode('tr',
-                newNode('td', "Browser "),
+                newNode('td', _t('__sauce_browser') + " "),
                 newNode('td', newNode('select', {'id': 'sauce-browser'}))
               ),
               newNode('tr',
-                newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-showjobpage'}), "Automatically show sauce jobs page")
+                newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-showjobpage'}), _t('__sauce_auto_show_job'))
               )
             ),
             newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-ok', 'click': function() {
@@ -100,10 +130,10 @@ sauce.settingspanel.show = function(callback) {
                   'platform': browser.os
                 });
               }
-            }}, "OK"),
+            }}, _t('ok')),
             newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-cancel', 'click': function() {
               sauce.settingspanel.hide();
-            }}, "Cancel")
+            }}, _t('cancel'))
           );
         builder.dialogs.show(sauce.settingspanel.dialog);
         if (sauce.getAutoShowJobPage()) {
@@ -136,14 +166,14 @@ sauce.settingspanel.show = function(callback) {
       },
       error: function(xhr, textStatus, errorThrown) {
         jQuery('#edit-rc-connecting').hide();
-        alert("Unable to connect to the Sauce servers: " + errorThrown);
+        alert(_t('__sauce_connection_error', errorThrown));
       }
     }
   );
 };
 
 sauce.browserOptionName = function(entry) {
-  return entry.long_name + " " + entry.short_version + " on " + entry.os;
+  return entry.long_name + " " + entry.short_version + " " + _t('__sauce_on_os') + " " + entry.os;
 };
 
 sauce.settingspanel.hide = function() {
@@ -151,9 +181,9 @@ sauce.settingspanel.hide = function() {
   sauce.settingspanel.dialog = null;
 };
 
-builder.gui.menu.addItem('file', 'Sauce Settings', 'file-sauce-settings', sauce.settingspanel.show);
+builder.gui.menu.addItem('file', _t('__sauce_settings'), 'file-sauce-settings', sauce.settingspanel.show);
 
-builder.gui.menu.addItem('run', 'Run on Sauce OnDemand', 'run-sauce-ondemand', function() {
+builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand', function() {
   jQuery('#edit-rc-connecting').show();
   sauce.settingspanel.show(function(result) {
     jQuery.ajax(
@@ -162,7 +192,7 @@ builder.gui.menu.addItem('run', 'Run on Sauce OnDemand', 'run-sauce-ondemand', f
         success: function(ajresult) {
           if (ajresult.minutes <= 0) {
             jQuery('#edit-rc-connecting').hide();
-            alert("Your OnDemand account has run out of minutes.");
+            alert(_t('__sauce_account_exhausted'));
           } else {
             builder.selenium2.rcPlayback.run(
               result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
@@ -188,7 +218,7 @@ builder.gui.menu.addItem('run', 'Run on Sauce OnDemand', 'run-sauce-ondemand', f
         },
         error: function(xhr, textStatus, errorThrown) {
           jQuery('#edit-rc-connecting').hide();
-          alert("Unable to connect to OnDemand: " + errorThrown);
+          alert(_t('__sauce_ondemand_connection_error', errorThrown));
         }
       }
     );
