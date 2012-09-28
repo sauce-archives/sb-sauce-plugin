@@ -35,7 +35,61 @@ sauce.shutdown = function() {
 
 };
 
+sauce.loginManager = Components.classes["@mozilla.org/login-manager;1"].getService(Components.interfaces.nsILoginManager);
+
+sauce.loginInfo = new Components.Constructor(
+  "@mozilla.org/login-manager/loginInfo;1",
+  Components.interfaces.nsILoginInfo,
+  "init"
+);
+
 sauce.getCredentials = function() {
+  // Migrate to new credentials storage system.
+  var creds = sauce.getOldCredentials();
+  if (creds.username && creds.accesskey) {
+    sauce.setCredentials(creds.username, creds.accesskey);
+    sauce.setOldCredentials("", "");
+    return creds;
+  }
+  
+  var logins = sauce.loginManager.findLogins(
+    {},
+    /*hostname*/      'chrome://seleniumbuilder',
+    /*formSubmitURL*/ null,
+    /*httprealm*/     'Sauce User Login'
+  );
+  
+  for (var i = 0; i < logins.length; i++) {
+    return {'username': logins[i].username, 'accesskey': logins[i].password};
+  }
+  return {'username': "", 'accesskey': ""};
+};
+
+sauce.setCredentials = function(username, accesskey) {
+  var logins = sauce.loginManager.findLogins(
+    {},
+    /*hostname*/      'chrome://seleniumbuilder',
+    /*formSubmitURL*/ null,
+    /*httprealm*/     'Sauce User Login'
+  );
+  
+  for (var i = 0; i < logins.length; i++) {
+    sauce.loginManager.removeLogin(logins[i]);
+  }
+  
+  var loginInfo = new sauce.loginInfo(
+    /*hostname*/      'chrome://seleniumbuilder',
+    /*formSubmitURL*/ null,
+    /*httprealm*/     'Sauce User Login',
+    /*username*/      username,
+    /*password*/      accesskey,
+    /*usernameField*/ "",
+    /*passwordField*/ ""
+  );
+  sauce.loginManager.addLogin(loginInfo);
+};
+
+sauce.getOldCredentials = function() {
   return {
     username:
       (bridge.prefManager.prefHasUserValue("extensions.seleniumbuilder.plugins.sauce.username") ? bridge.prefManager.getCharPref("extensions.seleniumbuilder.plugins.sauce.username") : ""),
@@ -44,7 +98,7 @@ sauce.getCredentials = function() {
   };
 };
 
-sauce.setCredentials = function(username, accesskey) {
+sauce.setOldCredentials = function(username, accesskey) {
   bridge.prefManager.setCharPref("extensions.seleniumbuilder.plugins.sauce.username", username);
   bridge.prefManager.setCharPref("extensions.seleniumbuilder.plugins.sauce.accesskey", accesskey);
 };
@@ -225,12 +279,70 @@ builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand'
   });
 });
 
+builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand-sel1', function() {
+  jQuery('#edit-rc-connecting').show();
+  sauce.settingspanel.show(function(result) {
+    jQuery.ajax(
+      "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
+      {
+        success: function(ajresult) {
+          if (ajresult.minutes <= 0) {
+            jQuery('#edit-rc-connecting').hide();
+            alert(_t('__sauce_account_exhausted'));
+          } else {
+            var name = _t('sel2_untitled_run');
+            if (builder.getScript().path) {
+              var name = builder.getScript().path.path.split("/");
+              name = name[name.length - 1];
+              name = name.split(".")[0];
+            }
+            name = "Selenium Builder " + result.browserstring + " " + (result.browserversion ? result.browserversion + " " : "") + (result.platform ? result.platform + " " : "") + name;
+            
+            builder.selenium1.rcPlayback.run(
+              "ondemand.saucelabs.com:80",
+              JSON.stringify({
+                'username':        result.username,
+                'access-key':      result.accesskey,
+                'os':              result.platform,
+                'browser':         result.browserstring,
+                'browser-version': result.browserversion,
+                'name':            name
+              }),
+              null,
+              // Start job callback
+              function(rcResponse) {
+                var sessionId = rcResponse.substring(3);
+                if (sauce.getAutoShowJobPage()) {
+                  window.open("https://saucelabs.com/tests/" + sessionId,'_newtab');
+                } else {
+                  var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
+                    newNode('a', {'href': "https://saucelabs.com/jobs/" + sessionId, 'target': '_newtab'}, "Show job info")
+                  );
+                  builder.dialogs.show(lnk);
+                  var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
+                  builder.views.script.addClearResultsListener(hide);
+                }
+              }
+            );
+          }
+        },
+        error: function(xhr, textStatus, errorThrown) {
+          jQuery('#edit-rc-connecting').hide();
+          alert(_t('__sauce_ondemand_connection_error', errorThrown));
+        }
+      }
+    );
+  });
+});
+
 builder.suite.addScriptChangeListener(function() {
   var script = builder.getScript();
   if (script && script.seleniumVersion === builder.selenium2) {
     jQuery('#run-sauce-ondemand').show();
+    jQuery('#run-sauce-ondemand-sel1').hide();
   } else {
     jQuery('#run-sauce-ondemand').hide();
+    jQuery('#run-sauce-ondemand-sel1').show();
   }
 });
 
