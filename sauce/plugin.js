@@ -2,8 +2,8 @@
 var sauce = {};
 
 // Strings
-// en-US
-var m = builder.translate.locales['en-US'].mapping;
+// en
+var m = builder.translate.locales['en'].mapping;
 m.__sauce_settings = "Sauce Settings";
 m.__sauce_username = "Sauce Username";
 m.__sauce_access_key = "Sauce Access Key";
