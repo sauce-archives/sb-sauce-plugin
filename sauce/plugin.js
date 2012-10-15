@@ -235,103 +235,105 @@ sauce.settingspanel.hide = function() {
   sauce.settingspanel.dialog = null;
 };
 
-builder.gui.menu.addItem('file', _t('__sauce_settings'), 'file-sauce-settings', sauce.settingspanel.show);
+builder.registerPostLoadHook(function() {  
+  builder.gui.menu.addItem('file', _t('__sauce_settings'), 'file-sauce-settings', sauce.settingspanel.show);
 
-builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand', function() {
-  jQuery('#edit-rc-connecting').show();
-  sauce.settingspanel.show(function(result) {
-    jQuery.ajax(
-      "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
-      {
-        success: function(ajresult) {
-          if (ajresult.minutes <= 0) {
-            jQuery('#edit-rc-connecting').hide();
-            alert(_t('__sauce_account_exhausted'));
-          } else {
-            builder.selenium2.rcPlayback.run(
-              result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
-              result.browserstring,
-              result.browserversion,
-              result.platform,
-              null,
-              // Start job callback
-              function(response) {
-                if (sauce.getAutoShowJobPage()) {
-                  window.open("https://saucelabs.com/jobs/" + response.sessionId,'_newtab');
-                } else {
-                  var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
-                    newNode('a', {'href': "https://saucelabs.com/jobs/" + response.sessionId, 'target': '_newtab'}, "Show job info")
-                  );
-                  builder.dialogs.show(lnk);
-                  var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
-                  builder.views.script.addClearResultsListener(hide);
+  builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand', function() {
+    jQuery('#edit-rc-connecting').show();
+    sauce.settingspanel.show(function(result) {
+      jQuery.ajax(
+        "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
+        {
+          success: function(ajresult) {
+            if (ajresult.minutes <= 0) {
+              jQuery('#edit-rc-connecting').hide();
+              alert(_t('__sauce_account_exhausted'));
+            } else {
+              builder.selenium2.rcPlayback.run(
+                result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
+                result.browserstring,
+                result.browserversion,
+                result.platform,
+                null,
+                // Start job callback
+                function(response) {
+                  if (sauce.getAutoShowJobPage()) {
+                    window.open("https://saucelabs.com/jobs/" + response.sessionId,'_newtab');
+                  } else {
+                    var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
+                      newNode('a', {'href': "https://saucelabs.com/jobs/" + response.sessionId, 'target': '_newtab'}, "Show job info")
+                    );
+                    builder.dialogs.show(lnk);
+                    var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
+                    builder.views.script.addClearResultsListener(hide);
+                  }
                 }
-              }
-            );
-          }
-        },
-        error: function(xhr, textStatus, errorThrown) {
-          jQuery('#edit-rc-connecting').hide();
-          alert(_t('__sauce_ondemand_connection_error', errorThrown));
-        }
-      }
-    );
-  });
-});
-
-builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand-sel1', function() {
-  jQuery('#edit-rc-connecting').show();
-  sauce.settingspanel.show(function(result) {
-    jQuery.ajax(
-      "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
-      {
-        success: function(ajresult) {
-          if (ajresult.minutes <= 0) {
-            jQuery('#edit-rc-connecting').hide();
-            alert(_t('__sauce_account_exhausted'));
-          } else {
-            var name = _t('sel2_untitled_run');
-            if (builder.getScript().path) {
-              var name = builder.getScript().path.path.split("/");
-              name = name[name.length - 1];
-              name = name.split(".")[0];
+              );
             }
-            name = "Selenium Builder " + result.browserstring + " " + (result.browserversion ? result.browserversion + " " : "") + (result.platform ? result.platform + " " : "") + name;
-            
-            builder.selenium1.rcPlayback.run(
-              "ondemand.saucelabs.com:80",
-              JSON.stringify({
-                'username':        result.username,
-                'access-key':      result.accesskey,
-                'os':              result.platform,
-                'browser':         result.browserstring,
-                'browser-version': result.browserversion,
-                'name':            name
-              }),
-              null,
-              // Start job callback
-              function(rcResponse) {
-                var sessionId = rcResponse.substring(3);
-                if (sauce.getAutoShowJobPage()) {
-                  window.open("https://saucelabs.com/tests/" + sessionId,'_newtab');
-                } else {
-                  var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
-                    newNode('a', {'href': "https://saucelabs.com/jobs/" + sessionId, 'target': '_newtab'}, "Show job info")
-                  );
-                  builder.dialogs.show(lnk);
-                  var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
-                  builder.views.script.addClearResultsListener(hide);
-                }
-              }
-            );
+          },
+          error: function(xhr, textStatus, errorThrown) {
+            jQuery('#edit-rc-connecting').hide();
+            alert(_t('__sauce_ondemand_connection_error', errorThrown));
           }
-        },
-        error: function(xhr, textStatus, errorThrown) {
-          jQuery('#edit-rc-connecting').hide();
-          alert(_t('__sauce_ondemand_connection_error', errorThrown));
         }
-      }
-    );
+      );
+    });
+  });
+
+  builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand-sel1', function() {
+    jQuery('#edit-rc-connecting').show();
+    sauce.settingspanel.show(function(result) {
+      jQuery.ajax(
+        "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
+        {
+          success: function(ajresult) {
+            if (ajresult.minutes <= 0) {
+              jQuery('#edit-rc-connecting').hide();
+              alert(_t('__sauce_account_exhausted'));
+            } else {
+              var name = _t('sel2_untitled_run');
+              if (builder.getScript().path) {
+                var name = builder.getScript().path.path.split("/");
+                name = name[name.length - 1];
+                name = name.split(".")[0];
+              }
+              name = "Selenium Builder " + result.browserstring + " " + (result.browserversion ? result.browserversion + " " : "") + (result.platform ? result.platform + " " : "") + name;
+            
+              builder.selenium1.rcPlayback.run(
+                "ondemand.saucelabs.com:80",
+                JSON.stringify({
+                  'username':        result.username,
+                  'access-key':      result.accesskey,
+                  'os':              result.platform,
+                  'browser':         result.browserstring,
+                  'browser-version': result.browserversion,
+                  'name':            name
+                }),
+                null,
+                // Start job callback
+                function(rcResponse) {
+                  var sessionId = rcResponse.substring(3);
+                  if (sauce.getAutoShowJobPage()) {
+                    window.open("https://saucelabs.com/tests/" + sessionId,'_newtab');
+                  } else {
+                    var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
+                      newNode('a', {'href': "https://saucelabs.com/jobs/" + sessionId, 'target': '_newtab'}, "Show job info")
+                    );
+                    builder.dialogs.show(lnk);
+                    var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
+                    builder.views.script.addClearResultsListener(hide);
+                  }
+                }
+              );
+            }
+          },
+          error: function(xhr, textStatus, errorThrown) {
+            jQuery('#edit-rc-connecting').hide();
+            alert(_t('__sauce_ondemand_connection_error', errorThrown));
+          }
+        }
+      );
+    });
   });
 });
 
