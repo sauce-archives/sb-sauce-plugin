@@ -1,7 +1,7 @@
 {
   "headerVersion": 1,
-  "pluginVersion": "1.0.6",
-  "builderMinVersion": "2.0.1",
+  "pluginVersion": "1.0.7",
+  "builderMinVersion": "2.0.4",
   "builderMaxVersion": "2.*",
   "identifier": "sauce",
   "name": "Sauce for Selenium Builder",

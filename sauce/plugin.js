@@ -351,41 +351,31 @@ builder.suite.addScriptChangeListener(function() {
   }
 });
 
-// Add a Java exporter that talks to the Sauce infrastructure.
-// Shallow copy and modify the existing Java formatter.
-var exporter_info = {};
-for (var k in builder.selenium2.io.formats.java_info) {
-  exporter_info[k] = builder.selenium2.io.formats.java_info[k];
+// Add Java exporters that talk to the Sauce infrastructure.
+var to_add = [];
+for (var name in builder.selenium2.io.lang_infos) {
+  if (name.startsWith && name.startsWith("Java")) {
+    to_add.push(name);
+  }
 }
 
-exporter_info.name = "Java/Sauce On Demand";
+function createDerivedInfo(name) {
+  builder.selenium2.io.addDerivedLangFormatter(name, {
+    name: name + "/Sauce On Demand",
+    get_params: function(script, callback) { sauce.settingspanel.show(/* sel1 */ false, callback); },
+    extraImports:
+      "import java.net.URL;\n",
+    driverVar:
+      "RemoteWebDriver wd;",
+    initDriver:
+      "DesiredCapabilities caps = DesiredCapabilities.{browserstring}();\n" +
+      "    caps.setCapability(\"name\", \"{name}\");\n" +
+      "wd = new RemoteWebDriver(\n" +
+      "    new URL(\"http://{username}:{accesskey}@ondemand.saucelabs.com:80/wd/hub\"),\n" +
+      "    caps);"
+  });
+};
 
-exporter_info.get_params = function(script, callback) { sauce.settingspanel.show(/* sel1 */ false, callback); };
-
-exporter_info.start = 
-  "import java.util.concurrent.TimeUnit;\n" +
-  "import java.util.Date;\n" + 
-  "import java.io.File;\n" +
-  "import java.net.URL;\n" +
-  "import org.openqa.selenium.support.ui.Select;\n" +
-  "import org.openqa.selenium.interactions.Actions;\n" +
-  "import org.openqa.selenium.firefox.FirefoxDriver;\n" +
-  "import org.openqa.selenium.*;\n" +
-  "import org.openqa.selenium.remote.*;\n" +
-  "import static org.openqa.selenium.OutputType.*;\n" +
-  "\n" +
-  "public class {name} {\n" +
-  "    public static void main(String[] args) throws Exception {\n" +
-  "        DesiredCapabilities caps = DesiredCapabilities.{browserstring}();\n" +
-  "            caps.setCapability(\"name\", \"{name}\");\n" +
-  "        RemoteWebDriver wd = new RemoteWebDriver(\n" +
-  "            new URL(\"http://{username}:{accesskey}@ondemand.saucelabs.com:80/wd/hub\"),\n" +
-  "            caps);\n" +
-  "        wd.manage().timeouts().implicitlyWait(60, TimeUnit.SECONDS);\n";
-  
-exporter_info.end =
-  "        wd.quit();\n" +
-  "    }\n" +
-  "}\n";
-
-builder.selenium2.io.formats.push(builder.selenium2.io.createLangFormatter(exporter_info));
+for (var i = 0; i < to_add.length; i++) {
+  createDerivedInfo(to_add[i]);
+}
