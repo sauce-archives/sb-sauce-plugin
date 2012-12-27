@@ -103,12 +103,14 @@ sauce.setOldCredentials = function(username, accesskey) {
   bridge.prefManager.setCharPref("extensions.seleniumbuilder.plugins.sauce.accesskey", accesskey);
 };
 
-sauce.getBrowser = function() {
-  return bridge.prefManager.prefHasUserValue("extensions.seleniumbuilder.plugins.sauce.browser") ? bridge.prefManager.getCharPref("extensions.seleniumbuilder.plugins.sauce.browser") : "";
+sauce.getBrowser = function(sel1) {
+  var prefName = sel1 ? "extensions.seleniumbuilder.plugins.sauce.browser_sel1" : "extensions.seleniumbuilder.plugins.sauce.browser";
+  return bridge.prefManager.prefHasUserValue(prefName) ? bridge.prefManager.getCharPref(prefName) : "";
 };
 
-sauce.setBrowser = function(browser) {
-  bridge.prefManager.setCharPref("extensions.seleniumbuilder.plugins.sauce.browser", browser);
+sauce.setBrowser = function(browser, sel1) {
+    var prefName = sel1 ? "extensions.seleniumbuilder.plugins.sauce.browser_sel1" : "extensions.seleniumbuilder.plugins.sauce.browser";
+  bridge.prefManager.setCharPref(prefName, browser);
 };
 
 sauce.getAutoShowJobPage = function() {
@@ -123,11 +125,11 @@ sauce.settingspanel = {};
 /** The dialog. */
 sauce.settingspanel.dialog = null;
 
-sauce.settingspanel.show = function(callback) {
+sauce.settingspanel.show = function(sel1, callback) {
   if (sauce.settingspanel.dialog) { return; }
   jQuery('#edit-rc-connecting').show();
   jQuery.ajax(
-    "http://saucelabs.com/rest/v1/info/browsers/webdriver",
+    sel1 ? "http://saucelabs.com/rest/v1/info/browsers" : "http://saucelabs.com/rest/v1/info/browsers/webdriver",
     {
       success: function(sauceBrowsers) {
         jQuery('#edit-rc-connecting').hide();
@@ -172,16 +174,17 @@ sauce.settingspanel.show = function(callback) {
               var choice = jQuery('#sauce-browser').val();
               var browser = sauceBrowsers[choice];
               sauce.setCredentials(username, accesskey);
-              sauce.setBrowser(sauce.browserOptionName(browser));
+              sauce.setBrowser(sauce.browserOptionName(browser), sel1);
               sauce.setAutoShowJobPage(!!jQuery('#sauce-showjobpage').attr('checked'));
               sauce.settingspanel.hide();
               if (callback) {
                 callback({
                   'username': username,
                   'accesskey': accesskey,
-                  'browserstring': browser.api_name,
+                  'browserstring': sel1 ? browser.selenium_name : browser.api_name,
                   'browserversion': browser.short_version,
-                  'platform': browser.os
+                  'platform': browser.os,
+                  'sel1': sel1 || false
                 });
               }
             }}, _t('ok')),
@@ -198,7 +201,7 @@ sauce.settingspanel.show = function(callback) {
           jQuery('#sauce-account-link').hide();
         }
         var usedNames = {};
-        var defaultName = sauce.getBrowser();
+        var defaultName = sauce.getBrowser(sel1);
         for (var i = 0; i < sauceBrowsers.length; i++) {
           var name = sauce.browserOptionName(sauceBrowsers[i]);
           if (usedNames[name]) { continue; }
@@ -240,7 +243,7 @@ builder.registerPostLoadHook(function() {
 
   builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand', function() {
     jQuery('#edit-rc-connecting').show();
-    sauce.settingspanel.show(function(result) {
+    sauce.settingspanel.show(/*sel1*/ false, function(result) {
       jQuery.ajax(
         "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
         {
@@ -282,7 +285,7 @@ builder.registerPostLoadHook(function() {
 
   builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand-sel1', function() {
     jQuery('#edit-rc-connecting').show();
-    sauce.settingspanel.show(function(result) {
+    sauce.settingspanel.show(/* sel1 */ true, function(result) {
       jQuery.ajax(
         "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
         {
@@ -357,7 +360,7 @@ for (var k in builder.selenium2.io.formats.java_info) {
 
 exporter_info.name = "Java/Sauce On Demand";
 
-exporter_info.get_params = function(script, callback) { sauce.settingspanel.show(callback); };
+exporter_info.get_params = function(script, callback) { sauce.settingspanel.show(/* sel1 */ false, callback); };
 
 exporter_info.start = 
   "import java.util.concurrent.TimeUnit;\n" +
