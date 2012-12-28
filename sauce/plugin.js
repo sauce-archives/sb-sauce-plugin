@@ -364,7 +364,9 @@ function createDerivedInfo(name) {
     name: name + "/Sauce On Demand",
     get_params: function(script, callback) { sauce.settingspanel.show(/* sel1 */ false, callback); },
     extraImports:
-      "import java.net.URL;\n",
+      "import java.net.URL;\n" +
+      "import org.openqa.selenium.remote.DesiredCapabilities;\n" +
+      "import org.openqa.selenium.remote.RemoteWebDriver;\n",
     driverVar:
       "RemoteWebDriver wd;",
     initDriver:
