@@ -371,7 +371,7 @@ function createDerivedInfo(name) {
       "RemoteWebDriver wd;",
     initDriver:
       "DesiredCapabilities caps = DesiredCapabilities.{browserstring}();\n" +
-      "    caps.setCapability(\"name\", \"{name}\");\n" +
+      "    caps.setCapability(\"name\", \"{scriptName}\");\n" +
       "wd = new RemoteWebDriver(\n" +
       "    new URL(\"http://{username}:{accesskey}@ondemand.saucelabs.com:80/wd/hub\"),\n" +
       "    caps);"
