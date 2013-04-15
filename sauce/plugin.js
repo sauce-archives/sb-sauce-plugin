@@ -257,9 +257,24 @@ builder.registerPostLoadHook(function() {
                 result.browserstring,
                 result.browserversion,
                 result.platform,
-                null,
+                // Postrun callback
+                function (runResult) {
+                  var data = null;
+                  if (runResult.success || !runResult.errormessage) {
+                    data = {"passed": runResult.success};
+                  } else {
+                    data = {"passed": runResult.success, 'custom-data': {'playback-error': runResult.errormessage}};
+                  }
+                  jQuery.ajax("https://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/" + result.username + '/jobs/' + sauce.currentSessionId, {
+                    "cache": true,
+                    "type": "PUT",
+                    "contentType": "application/json",
+                    "data": JSON.stringify(data)
+                  });
+                },
                 // Start job callback
                 function(response) {
+                  sauce.currentSessionId = response.sessionId;
                   if (sauce.getAutoShowJobPage()) {
                     window.open("http://saucelabs.com/jobs/" + response.sessionId,'_newtab');
                   } else {
@@ -312,10 +327,25 @@ builder.registerPostLoadHook(function() {
                   'browser-version': result.browserversion,
                   'name':            name
                 }),
-                null,
+                // Postrun callback
+                function (runResult) {
+                  var data = null;
+                  if (runResult.success || !runResult.errormessage) {
+                    data = {"passed": runResult.success};
+                  } else {
+                    data = {"passed": runResult.success, 'custom-data': {'playback-error': runResult.errormessage}};
+                  }
+                  jQuery.ajax("https://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/" + result.username + '/jobs/' + sauce.currentSessionId, {
+                    "cache": true,
+                    "type": "PUT",
+                    "contentType": "application/json",
+                    "data": JSON.stringify(data)
+                  });
+                },
                 // Start job callback
                 function(rcResponse) {
                   var sessionId = rcResponse.substring(3);
+                  sauce.currentSessionId = sessionId;
                   if (sauce.getAutoShowJobPage()) {
                     window.open("http://saucelabs.com/tests/" + sessionId,'_newtab');
                   } else {
