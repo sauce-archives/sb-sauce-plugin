@@ -10,10 +10,13 @@ m.__sauce_access_key = "Sauce Access Key";
 m.__sauce_lookup_access_key = "look up access key";
 m.__sauce_get_account = "Don't have an account? Get one for free!";
 m.__sauce_browser = "Browser";
+m.__sauce_browser_1 = "Sel 1 Browser";
+m.__sauce_browser_2 = "Sel 2 Browser";
 m.__sauce_auto_show_job = "Automatically show Sauce jobs page";
 m.__sauce_connection_error = "Unable to connect to the Sauce servers: {0}";
 m.__sauce_on_os = "on";
 m.__sauce_run_ondemand = "Run on Sauce OnDemand";
+m.__sauce_run_suite_ondemand = "Run suite on Sauce OnDemand";
 m.__sauce_account_exhausted = "Your OnDemand account has run out of minutes.";
 m.__sauce_ondemand_connection_error = "Unable to connect to OnDemand: {0}";
 // de
@@ -24,10 +27,13 @@ m.__sauce_access_key = "Sauce: Access Key";
 m.__sauce_lookup_access_key = "Access Key abrufen ";
 m.__sauce_get_account = "Gratis bei Sauce anmelden!";
 m.__sauce_browser = "Browser";
+m.__sauce_browser_1 = "Sel 1 Browser";
+m.__sauce_browser_2 = "Sel 2 Browser";
 m.__sauce_auto_show_job = "Automatisch Abspiel-Details zeigen";
 m.__sauce_connection_error = "Verbindung zum Server fehlgeschlagen: {0}";
 m.__sauce_on_os = "auf";
 m.__sauce_run_ondemand = "Auf Sauce OnDemand abspielen";
+m.__sauce_run_suite_ondemand = "Suite auf Sauce OnDemand abspielen";
 m.__sauce_account_exhausted = "Das OnDemand-Konto hat keine Minuten übrig.";
 m.__sauce_ondemand_connection_error = "Verbindung zum Server fehlgeschlagen: {0}";
 
@@ -125,101 +131,149 @@ sauce.settingspanel = {};
 /** The dialog. */
 sauce.settingspanel.dialog = null;
 
-sauce.settingspanel.show = function(sel1, callback) {
+sauce.settingspanel.show = function(sel1, sel2, callback) {
   if (sauce.settingspanel.dialog) { return; }
   jQuery('#edit-rc-connecting').show();
   jQuery.ajax(
-    sel1 ? "http://saucelabs.com/rest/v1/info/browsers" : "http://saucelabs.com/rest/v1/info/browsers/webdriver",
+    "http://saucelabs.com/rest/v1/info/browsers",
     {
-      success: function(sauceBrowsers) {
-        jQuery('#edit-rc-connecting').hide();
-        var credentials = sauce.getCredentials();
-        sauce.settingspanel.dialog =
-          newNode('div', {'class': 'dialog'},
-            newNode('h3', _t('__sauce_settings')),
-            newNode('table', {style: 'border: none;', id: 'rc-options-table'},
-              newNode('tr',
-                newNode('td', _t('__sauce_username') + " "),
-                newNode('td', newNode('input', {id: 'sauce-username', type: 'text', value: credentials.username, 'change': function() {
-                  if (jQuery('#sauce-username').val() == "") {
-                    jQuery('#sauce-account-link').show();
-                  } else {
-                    jQuery('#sauce-account-link').hide();
-                  }
-                }}))
-              ),
-              newNode('tr',
-                newNode('td', _t('__sauce_access_key') + " "),
-                newNode('td', newNode('input', {id: 'sauce-accesskey', type: 'text', value: credentials.accesskey}))
-              ),
-              newNode('tr',
-                newNode('td', ""),
-                newNode('td', newNode('a', {'href': 'http://saucelabs.com/account/key', 'target': '_blank'}, "(" + _t('__sauce_lookup_access_key') + ")"))
-              ),
-              newNode('tr', {'id': 'sauce-account-link'},
-                newNode('td', ""),
-                newNode('td', newNode('a', {'href': 'http://saucelabs.com/signup', 'target': '_blank'}, "(" + _t('__sauce_get_account') + ")"))
-              ),
-              newNode('tr',
-                newNode('td', _t('__sauce_browser') + " "),
-                newNode('td', newNode('select', {'id': 'sauce-browser'}))
-              ),
-              newNode('tr',
-                newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-showjobpage'}), _t('__sauce_auto_show_job'))
-              )
-            ),
-            newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-ok', 'click': function() {
-              var username = jQuery('#sauce-username').val();
-              var accesskey = jQuery('#sauce-accesskey').val();
-              var choice = jQuery('#sauce-browser').val();
-              var browser = sauceBrowsers[choice];
-              sauce.setCredentials(username, accesskey);
-              sauce.setBrowser(sauce.browserOptionName(browser), sel1);
-              sauce.setAutoShowJobPage(!!jQuery('#sauce-showjobpage').attr('checked'));
-              sauce.settingspanel.hide();
-              if (callback) {
-                callback({
-                  'username': username,
-                  'accesskey': accesskey,
-                  'browserstring': sel1 ? browser.selenium_name : browser.api_name,
-                  'browserversion': browser.short_version,
-                  'platform': browser.os,
-                  'sel1': sel1 || false
-                });
+      success: function(sauceBrowsers1) {
+        jQuery.ajax(
+          "http://saucelabs.com/rest/v1/info/browsers/webdriver",
+          {
+            success: function(sauceBrowsers2) {
+              jQuery('#edit-rc-connecting').hide();
+              var credentials = sauce.getCredentials();
+              sauce.settingspanel.dialog =
+                newNode('div', {'class': 'dialog'},
+                  newNode('h3', _t('__sauce_settings')),
+                  newNode('table', {style: 'border: none;', id: 'rc-options-table'},
+                    newNode('tr',
+                      newNode('td', _t('__sauce_username') + " "),
+                      newNode('td', newNode('input', {id: 'sauce-username', type: 'text', value: credentials.username, 'change': function() {
+                        if (jQuery('#sauce-username').val() == "") {
+                          jQuery('#sauce-account-link').show();
+                        } else {
+                          jQuery('#sauce-account-link').hide();
+                        }
+                      }}))
+                    ),
+                    newNode('tr',
+                      newNode('td', _t('__sauce_access_key') + " "),
+                      newNode('td', newNode('input', {id: 'sauce-accesskey', type: 'text', value: credentials.accesskey}))
+                    ),
+                    newNode('tr',
+                      newNode('td', ""),
+                      newNode('td', newNode('a', {'href': 'http://saucelabs.com/account/key', 'target': '_blank'}, "(" + _t('__sauce_lookup_access_key') + ")"))
+                    ),
+                    newNode('tr', {'id': 'sauce-account-link'},
+                      newNode('td', ""),
+                      newNode('td', newNode('a', {'href': 'http://saucelabs.com/signup', 'target': '_blank'}, "(" + _t('__sauce_get_account') + ")"))
+                    ),
+                    newNode('tr', {'id': 'sauce-browser-1-tr'},
+                      newNode('td', _t('__sauce_browser_1') + " "),
+                      newNode('td', newNode('select', {'id': 'sauce-browser-1'}))
+                    ),
+                    newNode('tr', {'id': 'sauce-browser-2-tr'},
+                      newNode('td', _t('__sauce_browser_2') + " "),
+                      newNode('td', newNode('select', {'id': 'sauce-browser-2'}))
+                    ),
+                    newNode('tr',
+                      newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-showjobpage'}), _t('__sauce_auto_show_job'))
+                    )
+                  ),
+                  newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-ok', 'click': function() {
+                    var username = jQuery('#sauce-username').val();
+                    var accesskey = jQuery('#sauce-accesskey').val();
+                    var choice1 = jQuery('#sauce-browser-1').val();
+                    var choice2 = jQuery('#sauce-browser-2').val();
+                    var browser1 = sauceBrowsers1[choice1];
+                    var browser2 = sauceBrowsers2[choice2];
+                    sauce.setCredentials(username, accesskey);
+                    if (browser1) { sauce.setBrowser(sauce.browserOptionName(browser1), true); }
+                    if (browser2) { sauce.setBrowser(sauce.browserOptionName(browser2), false); }
+                    sauce.setAutoShowJobPage(!!jQuery('#sauce-showjobpage').attr('checked'));
+                    sauce.settingspanel.hide();
+                    if (callback) {
+                      callback({
+                        'username': username,
+                        'accesskey': accesskey,
+                        'browserstring1': browser1 ? browser1.selenium_name : null,
+                        'browserstring2': browser2 ? browser2.api_name : null,
+                        'browserversion1': browser1 ? browser1.short_version : null,
+                        'browserversion2': browser2 ? browser2.short_version : null,
+                        'platform1': browser1 ? browser1.os : null,
+                        'platform2': browser2 ? browser2.os : null
+                      });
+                    }
+                  }}, _t('ok')),
+                  newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-cancel', 'click': function() {
+                    sauce.settingspanel.hide();
+                  }}, _t('cancel'))
+                );
+              builder.dialogs.show(sauce.settingspanel.dialog);
+              if (sauce.getAutoShowJobPage()) {
+                jQuery('#sauce-showjobpage').attr('checked', 'checked');
               }
-            }}, _t('ok')),
-            newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-cancel', 'click': function() {
-              sauce.settingspanel.hide();
-            }}, _t('cancel'))
-          );
-        builder.dialogs.show(sauce.settingspanel.dialog);
-        if (sauce.getAutoShowJobPage()) {
-          jQuery('#sauce-showjobpage').attr('checked', 'checked');
-        }
-        // Populate dialog.
-        if (credentials.username != "") {
-          jQuery('#sauce-account-link').hide();
-        }
-        var usedNames = {};
-        var defaultName = sauce.getBrowser(sel1);
-        for (var i = 0; i < sauceBrowsers.length; i++) {
-          var name = sauce.browserOptionName(sauceBrowsers[i]);
-          if (usedNames[name]) { continue; }
-          usedNames[name] = true;
-          if (name == defaultName) {
-            jQuery('#sauce-browser').append(newNode(
-              'option',
-              {'value': i, 'selected': 'selected'},
-              name
-            ));
-          } else {
-            jQuery('#sauce-browser').append(newNode(
-              'option',
-              {'value': i},
-              name
-            ));
+              // Populate dialog.
+              if (credentials.username != "") {
+                jQuery('#sauce-account-link').hide();
+              }
+              if (sel1) {
+                var usedNames = {};
+                var defaultName = sauce.getBrowser(true);
+                for (var i = 0; i < sauceBrowsers1.length; i++) {
+                  var name = sauce.browserOptionName(sauceBrowsers1[i]);
+                  if (usedNames[name]) { continue; }
+                  usedNames[name] = true;
+                  if (name == defaultName) {
+                    jQuery('#sauce-browser-1').append(newNode(
+                      'option',
+                      {'value': i, 'selected': 'selected'},
+                      name
+                    ));
+                  } else {
+                    jQuery('#sauce-browser-1').append(newNode(
+                      'option',
+                      {'value': i},
+                      name
+                    ));
+                  }
+                }
+              } else {
+                jQuery('#sauce-browser-1-tr').remove();
+              }
+              if (sel2) {
+                var usedNames = {};
+                var defaultName = sauce.getBrowser(false);
+                for (var i = 0; i < sauceBrowsers2.length; i++) {
+                  var name = sauce.browserOptionName(sauceBrowsers2[i]);
+                  if (usedNames[name]) { continue; }
+                  usedNames[name] = true;
+                  if (name == defaultName) {
+                    jQuery('#sauce-browser-2').append(newNode(
+                      'option',
+                      {'value': i, 'selected': 'selected'},
+                      name
+                    ));
+                  } else {
+                    jQuery('#sauce-browser-2').append(newNode(
+                      'option',
+                      {'value': i},
+                      name
+                    ));
+                  }
+                }
+              } else {
+                jQuery('#sauce-browser-2-tr').remove();
+              }
+            },
+            error: function(xhr, textStatus, errorThrown) {
+              jQuery('#edit-rc-connecting').hide();
+              alert(_t('__sauce_connection_error', errorThrown));
+            }
           }
-        }
+        );
       },
       error: function(xhr, textStatus, errorThrown) {
         jQuery('#edit-rc-connecting').hide();
@@ -238,134 +292,167 @@ sauce.settingspanel.hide = function() {
   sauce.settingspanel.dialog = null;
 };
 
+sauce.runSel1ScriptWithSettings = function(result, callback) {
+  jQuery('#edit-rc-connecting').show();
+  jQuery.ajax(
+    "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
+    {
+      success: function(ajresult) {
+        jQuery('#edit-rc-connecting').hide();
+        if (ajresult.minutes <= 0) {
+          alert(_t('__sauce_account_exhausted'));
+        } else {
+          var name = _t('sel2_untitled_run');
+          if (builder.getScript().path) {
+            var name = builder.getScript().path.path.split("/");
+            name = name[name.length - 1];
+            name = name.split(".")[0];
+          }
+          name = "Selenium Builder " + result.browserstring1 + " " + (result.browserversion1 ? result.browserversion1 + " " : "") + (result.platform1 ? result.platform1 + " " : "") + name;
+        
+          builder.selenium1.rcPlayback.run(
+            "ondemand.saucelabs.com:80",
+            JSON.stringify({
+              'username':        result.username,
+              'access-key':      result.accesskey,
+              'os':              result.platform1,
+              'browser':         result.browserstring1,
+              'browser-version': result.browserversion1,
+              'name':            name
+            }),
+            // Postrun callback
+            function (runResult) {
+              var data = null;
+              if (runResult.success || !runResult.errormessage) {
+                data = {"passed": runResult.success};
+              } else {
+                data = {"passed": runResult.success, 'custom-data': {'playback-error': runResult.errormessage}};
+              }
+              jQuery.ajax("https://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/" + result.username + '/jobs/' + sauce.currentSessionId, {
+                "cache": true,
+                "type": "PUT",
+                "contentType": "application/json",
+                "data": JSON.stringify(data)
+              });
+              if (callback) {
+                callback(runResult);
+              }
+            },
+            // Start job callback
+            function(rcResponse) {
+              var sessionId = rcResponse.substring(3);
+              sauce.currentSessionId = sessionId;
+              if (sauce.getAutoShowJobPage()) {
+                window.open("http://saucelabs.com/tests/" + sessionId,'_newtab');
+              } else {
+                var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
+                  newNode('a', {'href': "http://saucelabs.com/jobs/" + sessionId, 'target': '_newtab'}, "Show job info")
+                );
+                builder.dialogs.show(lnk);
+                var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
+                builder.views.script.addClearResultsListener(hide);
+              }
+            }
+          );
+        }
+      },
+      error: function(xhr, textStatus, errorThrown) {
+        jQuery('#edit-rc-connecting').hide();
+        alert(_t('__sauce_ondemand_connection_error', errorThrown));
+      }
+    }
+  );
+};
+
+sauce.runSel2ScriptWithSettings = function(result, callback) {
+  jQuery('#edit-rc-connecting').show();
+  jQuery.ajax(
+    "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
+    {
+      success: function(ajresult) {
+        jQuery('#edit-rc-connecting').hide();
+        if (ajresult.minutes <= 0) {
+          alert(_t('__sauce_account_exhausted'));
+        } else {
+          builder.selenium2.rcPlayback.run(
+            result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
+            result.browserstring2,
+            result.browserversion2,
+            result.platform2,
+            // Postrun callback
+            function (runResult) {
+              var data = null;
+              if (runResult.success || !runResult.errormessage) {
+                data = {"passed": runResult.success};
+              } else {
+                data = {"passed": runResult.success, 'custom-data': {'playback-error': runResult.errormessage}};
+              }
+              jQuery.ajax("https://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/" + result.username + '/jobs/' + sauce.currentSessionId, {
+                "cache": true,
+                "type": "PUT",
+                "contentType": "application/json",
+                "data": JSON.stringify(data)
+              });
+              if (callback) {
+                callback(runResult);
+              }
+            },
+            // Start job callback
+            function(response) {
+              sauce.currentSessionId = response.sessionId;
+              if (sauce.getAutoShowJobPage()) {
+                window.open("http://saucelabs.com/jobs/" + response.sessionId,'_newtab');
+              } else {
+                var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
+                  newNode('a', {'href': "http://saucelabs.com/jobs/" + response.sessionId, 'target': '_newtab'}, "Show job info")
+                );
+                builder.dialogs.show(lnk);
+                var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
+                builder.views.script.addClearResultsListener(hide);
+              }
+            }
+          );
+        }
+      },
+      error: function(xhr, textStatus, errorThrown) {
+        jQuery('#edit-rc-connecting').hide();
+        alert(_t('__sauce_ondemand_connection_error', errorThrown));
+      }
+    }
+  );
+};
+
 builder.registerPostLoadHook(function() {  
-  builder.gui.menu.addItem('file', _t('__sauce_settings'), 'file-sauce-settings', sauce.settingspanel.show);
+  builder.gui.menu.addItem('file', _t('__sauce_settings'), 'file-sauce-settings', function() { sauce.settingspanel.show(true, true); });
 
   builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand', function() {
     jQuery('#edit-rc-connecting').show();
-    sauce.settingspanel.show(/*sel1*/ false, function(result) {
-      jQuery.ajax(
-        "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
-        {
-          success: function(ajresult) {
-            if (ajresult.minutes <= 0) {
-              jQuery('#edit-rc-connecting').hide();
-              alert(_t('__sauce_account_exhausted'));
-            } else {
-              builder.selenium2.rcPlayback.run(
-                result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
-                result.browserstring,
-                result.browserversion,
-                result.platform,
-                // Postrun callback
-                function (runResult) {
-                  var data = null;
-                  if (runResult.success || !runResult.errormessage) {
-                    data = {"passed": runResult.success};
-                  } else {
-                    data = {"passed": runResult.success, 'custom-data': {'playback-error': runResult.errormessage}};
-                  }
-                  jQuery.ajax("https://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/" + result.username + '/jobs/' + sauce.currentSessionId, {
-                    "cache": true,
-                    "type": "PUT",
-                    "contentType": "application/json",
-                    "data": JSON.stringify(data)
-                  });
-                },
-                // Start job callback
-                function(response) {
-                  sauce.currentSessionId = response.sessionId;
-                  if (sauce.getAutoShowJobPage()) {
-                    window.open("http://saucelabs.com/jobs/" + response.sessionId,'_newtab');
-                  } else {
-                    var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
-                      newNode('a', {'href': "http://saucelabs.com/jobs/" + response.sessionId, 'target': '_newtab'}, "Show job info")
-                    );
-                    builder.dialogs.show(lnk);
-                    var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
-                    builder.views.script.addClearResultsListener(hide);
-                  }
-                }
-              );
-            }
-          },
-          error: function(xhr, textStatus, errorThrown) {
-            jQuery('#edit-rc-connecting').hide();
-            alert(_t('__sauce_ondemand_connection_error', errorThrown));
-          }
-        }
-      );
+    sauce.settingspanel.show(/*sel1*/ false, /*sel2*/ true, function(result) {
+      sauce.runSel2ScriptWithSettings(result);
     });
   });
 
   builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand-sel1', function() {
     jQuery('#edit-rc-connecting').show();
-    sauce.settingspanel.show(/* sel1 */ true, function(result) {
-      jQuery.ajax(
-        "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
-        {
-          success: function(ajresult) {
-            if (ajresult.minutes <= 0) {
-              jQuery('#edit-rc-connecting').hide();
-              alert(_t('__sauce_account_exhausted'));
-            } else {
-              var name = _t('sel2_untitled_run');
-              if (builder.getScript().path) {
-                var name = builder.getScript().path.path.split("/");
-                name = name[name.length - 1];
-                name = name.split(".")[0];
-              }
-              name = "Selenium Builder " + result.browserstring + " " + (result.browserversion ? result.browserversion + " " : "") + (result.platform ? result.platform + " " : "") + name;
-            
-              builder.selenium1.rcPlayback.run(
-                "ondemand.saucelabs.com:80",
-                JSON.stringify({
-                  'username':        result.username,
-                  'access-key':      result.accesskey,
-                  'os':              result.platform,
-                  'browser':         result.browserstring,
-                  'browser-version': result.browserversion,
-                  'name':            name
-                }),
-                // Postrun callback
-                function (runResult) {
-                  var data = null;
-                  if (runResult.success || !runResult.errormessage) {
-                    data = {"passed": runResult.success};
-                  } else {
-                    data = {"passed": runResult.success, 'custom-data': {'playback-error': runResult.errormessage}};
-                  }
-                  jQuery.ajax("https://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/" + result.username + '/jobs/' + sauce.currentSessionId, {
-                    "cache": true,
-                    "type": "PUT",
-                    "contentType": "application/json",
-                    "data": JSON.stringify(data)
-                  });
-                },
-                // Start job callback
-                function(rcResponse) {
-                  var sessionId = rcResponse.substring(3);
-                  sauce.currentSessionId = sessionId;
-                  if (sauce.getAutoShowJobPage()) {
-                    window.open("http://saucelabs.com/tests/" + sessionId,'_newtab');
-                  } else {
-                    var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
-                      newNode('a', {'href': "http://saucelabs.com/jobs/" + sessionId, 'target': '_newtab'}, "Show job info")
-                    );
-                    builder.dialogs.show(lnk);
-                    var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
-                    builder.views.script.addClearResultsListener(hide);
-                  }
-                }
-              );
-            }
-          },
-          error: function(xhr, textStatus, errorThrown) {
-            jQuery('#edit-rc-connecting').hide();
-            alert(_t('__sauce_ondemand_connection_error', errorThrown));
-          }
-        }
-      );
+    sauce.settingspanel.show(/* sel1 */ true, /*sel1*/ false, function(result) {
+      sauce.runSel1ScriptWithSettings(result);
+    });
+  });
+  
+  builder.gui.menu.addItem('run', _t('__sauce_run_suite_ondemand'), 'run-suite-ondemand', function() {
+    // Figure out which settings panels need showing.
+    var needs1 = false;
+    var needs2 = false;
+    for (var i = 0; i < builder.suite.scripts.length; i++) {
+      if (builder.suite.scripts[i].seleniumVersion == builder.selenium1) {
+        needs1 = true;
+      } else {
+        needs2 = true;
+      }
+    }
+    jQuery('#edit-rc-connecting').show();
+    sauce.settingspanel.show(/* sel1 */ needs1, /* sel2*/ needs2, function(result) {
+      sauce.runall.run(result);
     });
   });
 });
@@ -392,7 +479,7 @@ for (var name in builder.selenium2.io.lang_infos) {
 function createDerivedInfo(name) {
   builder.selenium2.io.addDerivedLangFormatter(name, {
     name: name + "/Sauce On Demand",
-    get_params: function(script, callback) { sauce.settingspanel.show(/* sel1 */ false, callback); },
+    get_params: function(script, callback) { sauce.settingspanel.show(/* sel1 */ false, /* sel2 */ true,callback); },
     extraImports:
       "import java.net.URL;\n" +
       "import org.openqa.selenium.remote.DesiredCapabilities;\n" +
@@ -411,3 +498,143 @@ function createDerivedInfo(name) {
 for (var i = 0; i < to_add.length; i++) {
   createDerivedInfo(to_add[i]);
 }
+
+// Run suite feature
+/**
+ * Dialog that runs all scripts in the suite and keeps track of scripts being run.
+ */
+sauce.runall = {};
+sauce.runall.dialog = null;
+
+sauce.runall.currentScriptIndex = -1;
+sauce.runall.scriptNames = [];
+
+sauce.runall.info_p = null;
+sauce.runall.scriptlist = null;
+sauce.runall.stop_b = null;
+sauce.runall.close_b = null;
+
+sauce.runall.requestStop = false;
+sauce.runall.currentPlayback = null;
+
+sauce.runall.settings = null;
+
+function makeViewResultLink(sid) {
+  return newNode('a', {'class':"step-view", id:sid + "-view", style:"display: none", click: function(e) {
+    window.bridge.getRecordingWindow().location = this.href;
+    // We don't actually want the SB window to navigate to the script's page!
+    e.preventDefault();
+  }}, _t('view_run_result'));
+}
+
+sauce.runall.run = function(settings) {
+  jQuery('#edit-suite-editing').hide();
+  sauce.runall.requestStop = false;
+  sauce.runall.settings = settings;
+  
+  sauce.runall.scriptNames = builder.suite.getScriptNames();
+  
+  sauce.runall.info_p = newNode('p', {id:'infop'}, _t('running_scripts'));
+  
+  // Display the scripts in a similar fashion to the steps are shown in the record interface.
+  sauce.runall.scriptlist = newFragment();
+  
+  for (var i = 0; i < sauce.runall.scriptNames.length; i++) {
+    var name = sauce.runall.scriptNames[i];
+    var sid = 'script-num-' + i;
+
+    sauce.runall.scriptlist.appendChild(
+      newNode('div', {id: sid, 'class': 'b-suite-playback-script'},
+        newNode('div',
+          newNode('span', {}, name),
+          makeViewResultLink(sid)
+        ),
+        newNode('div', {'class':"step-error", id:sid + "-error", style:"display: none"})
+      )
+    );
+  }
+  
+  sauce.runall.stop_b = newNode('a', _t('stop'), {
+    'class': 'button',
+    click: function () {
+      sauce.runall.stoprun();
+    },
+    href: '#stop'
+  });
+  
+  sauce.runall.close_b = newNode('a', _t('close'), {
+    'class': 'button',
+    click: function () {
+      jQuery(sauce.runall.dialog).remove();
+    },
+    href: '#close'
+  });
+  
+  sauce.runall.dialog = newNode('div', {'class': 'dialog'});
+  jQuery(sauce.runall.dialog)
+    .append(sauce.runall.info_p)
+    .append(sauce.runall.scriptlist)
+    .append(newNode('p',
+      newNode('span', {id: 'suite-playback-stop'}, sauce.runall.stop_b),
+      newNode('span', {id: 'suite-playback-close', style: 'display: none;'}, sauce.runall.close_b)
+    ));
+    
+  builder.dialogs.show(sauce.runall.dialog);
+  
+  sauce.runall.currentScriptIndex = -1; // Will get incremented to 0 in runNext.
+  sauce.runall.runNext();
+};
+
+sauce.runall.stoprun = function() {
+  sauce.runall.requestStop = true;
+  jQuery('#suite-playback-stop').hide();
+  try {
+    sauce.runall.currentPlayback.stopTest();
+  } catch (e) {
+    // In case we haven't actually started or have already finished, we don't really care if this
+    // goes wrong.
+  }
+};
+
+sauce.runall.processResult = function(result) {
+  if (result.url) {
+    jQuery("#script-num-" + sauce.runall.currentScriptIndex + "-view").attr('href', result.url).show();
+  }
+  if (result.success) {
+    jQuery("#script-num-" + sauce.runall.currentScriptIndex).css('background-color', '#bfee85');
+  } else {
+    if (result.errormessage) {
+      jQuery("#script-num-" + sauce.runall.currentScriptIndex).css('background-color', '#ff3333');
+      jQuery("#script-num-" + sauce.runall.currentScriptIndex + "-error").html(" " + result.errormessage).show();
+    } else {
+      jQuery("#script-num-" + sauce.runall.currentScriptIndex).css('background-color', '#ffcccc');
+    }
+  }
+  sauce.runall.runNext();
+};
+
+sauce.runall.hide = function () {
+  jQuery(sauce.runall.dialog).remove();
+};
+
+sauce.runall.runNext = function() {
+  sauce.runall.currentScriptIndex++;
+  if (sauce.runall.currentScriptIndex < sauce.runall.scriptNames.length &&
+      !sauce.runall.requestStop)
+  {
+    jQuery("#script-num-" + sauce.runall.currentScriptIndex).css('background-color', '#ffffaa');
+    builder.suite.switchToScript(sauce.runall.currentScriptIndex);
+    builder.stepdisplay.update();
+    sauce.runall.currentPlayback = builder.getScript().seleniumVersion.rcPlayback;
+    if (builder.getScript().seleniumVersion == builder.selenium1) {
+      sauce.runSel1ScriptWithSettings(sauce.runall.settings, sauce.runall.processResult);
+    } else {
+      sauce.runSel2ScriptWithSettings(sauce.runall.settings, sauce.runall.processResult);
+    }
+  } else {
+    jQuery('#suite-playback-stop').hide();
+    jQuery('#suite-playback-close').show();
+    jQuery(sauce.runall.info_p).html(_t('done_exclamation'));
+    jQuery('#edit-suite-editing').show();
+  }
+};
