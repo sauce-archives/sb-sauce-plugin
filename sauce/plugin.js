@@ -479,7 +479,7 @@ for (var name in builder.selenium2.io.lang_infos) {
 function createDerivedInfo(name) {
   builder.selenium2.io.addDerivedLangFormatter(name, {
     name: name + "/Sauce On Demand",
-    get_params: function(script, callback) { sauce.settingspanel.show(/* sel1 */ false, /* sel2 */ true,callback); },
+    get_params: function(script, callback) { sauce.settingspanel.show(/* sel1 */ false, /* sel2 */ true, callback); },
     extraImports:
       "import java.net.URL;\n" +
       "import org.openqa.selenium.remote.DesiredCapabilities;\n" +
@@ -487,7 +487,7 @@ function createDerivedInfo(name) {
     driverVar:
       "RemoteWebDriver wd;",
     initDriver:
-      "DesiredCapabilities caps = DesiredCapabilities.{browserstring}();\n" +
+      "DesiredCapabilities caps = DesiredCapabilities.{browserstring2}();\n" +
       "    caps.setCapability(\"name\", \"{scriptName}\");\n" +
       "wd = new RemoteWebDriver(\n" +
       "    new URL(\"http://{username}:{accesskey}@ondemand.saucelabs.com:80/wd/hub\"),\n" +
