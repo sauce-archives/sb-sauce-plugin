@@ -493,10 +493,24 @@ function createDerivedInfo(name) {
       "RemoteWebDriver wd;",
     initDriver:
       "DesiredCapabilities caps = DesiredCapabilities.{browserstring2}();\n" +
-      "    caps.setCapability(\"name\", \"{scriptName}\");\n" +
-      "wd = new RemoteWebDriver(\n" +
-      "    new URL(\"http://{username}:{accesskey}@ondemand.saucelabs.com:80/wd/hub\"),\n" +
-      "    caps);"
+      "            caps.setCapability(\"name\", \"{scriptName}\");\n" +
+      "        wd = new RemoteWebDriver(\n" +
+      "            new URL(\"http://{username}:{accesskey}@ondemand.saucelabs.com:80/wd/hub\"),\n" +
+      "            caps);",
+    junit_import_extra:
+      "import com.saucelabs.common.SauceOnDemandAuthentication;\n" +
+      "import com.saucelabs.common.SauceOnDemandSessionIdProvider;\n" +
+      "import com.saucelabs.junit.SauceOnDemandTestWatcher;\n" +
+      "import org.junit.Rule;\n" +
+      "import org.junit.rules.TestName;\n",
+    junit_class_extra: "implements SauceOnDemandSessionIdProvider ",
+    junit_setup_extra: "        sessionId = wd.getSessionId().toString();\n",
+    junit_fields_extra:
+      "    private String sessionId;\n" +
+      "    public SauceOnDemandAuthentication authentication = new SauceOnDemandAuthentication(\"{username}\", \"{accesskey}\");\n" +
+      "    public @Rule SauceOnDemandTestWatcher resultReportingTestWatcher = new SauceOnDemandTestWatcher(this, authentication);\n" +
+      "    public @Rule TestName testName = new TestName();\n" +
+      "    @Override public String getSessionId() { return sessionId; }\n"
   });
 };
 
