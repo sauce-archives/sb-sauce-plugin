@@ -479,7 +479,12 @@ for (var name in builder.selenium2.io.lang_infos) {
 function createDerivedInfo(name) {
   builder.selenium2.io.addDerivedLangFormatter(name, {
     name: name + "/Sauce On Demand",
-    get_params: function(script, callback) { sauce.settingspanel.show(/* sel1 */ false, /* sel2 */ true, callback); },
+    get_params: function(script, callback) { sauce.settingspanel.show(/* sel1 */ false, /* sel2 */ true, function(response) {
+      if (response.browserstring2 == "internet explorer") {
+        response.browserstring2 = "internetExplorer";
+      }
+      callback(response);
+    }); },
     extraImports:
       "import java.net.URL;\n" +
       "import org.openqa.selenium.remote.DesiredCapabilities;\n" +
