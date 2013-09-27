@@ -115,8 +115,24 @@ sauce.getBrowser = function(sel1) {
 };
 
 sauce.setBrowser = function(browser, sel1) {
-    var prefName = sel1 ? "extensions.seleniumbuilder.plugins.sauce.browser_sel1" : "extensions.seleniumbuilder.plugins.sauce.browser";
+  var prefName = sel1 ? "extensions.seleniumbuilder.plugins.sauce.browser_sel1" : "extensions.seleniumbuilder.plugins.sauce.browser";
   bridge.prefManager.setCharPref(prefName, browser);
+};
+
+sauce.getBrowserOptionPrefs = function(sel2) {
+  var prefName = sel2 ? "extensions.seleniumbuilder.plugins.sauce.browserOptions_sel2" : "extensions.seleniumbuilder.plugins.sauce.browserOptions_sel1";
+  try {
+    return JSON.parse(bridge.prefManager.prefHasUserValue(prefName) ? bridge.prefManager.getCharPref(prefName) : "{}");
+  } catch (e) {
+    return {};
+  }
+};
+
+sauce.setBrowserOptionPrefs = function(sel2, prefs) {
+  var prefName = sel2 ? "extensions.seleniumbuilder.plugins.sauce.browserOptions_sel2" : "extensions.seleniumbuilder.plugins.sauce.browserOptions_sel1";
+  try {
+    bridge.prefManager.setCharPref(prefName, JSON.stringify(prefs));
+  } catch (e) { /* ignore */ }
 };
 
 sauce.getAutoShowJobPage = function() {
@@ -176,16 +192,16 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     newNode('tr', {'id': 'sauce-browser-1-tr'},
                       newNode('td', _t('__sauce_browser_1') + " "),
                       newNode('td',
-                        newNode('select', {'id': 'sauce-os-1'}),
-                        newNode('select', {'id': 'sauce-browser-1'}),
+                        newNode('select', {'id': 'sauce-os-1'}), " ",
+                        newNode('select', {'id': 'sauce-browser-1'}), " ",
                         newNode('select', {'id': 'sauce-version-1'})
                       )
                     ),
                     newNode('tr', {'id': 'sauce-browser-2-tr'},
                       newNode('td', _t('__sauce_browser_2') + " "),
                       newNode('td',
-                        newNode('select', {'id': 'sauce-os-2'}),
-                        newNode('select', {'id': 'sauce-browser-2'}),
+                        newNode('select', {'id': 'sauce-os-2'}), " ",
+                        newNode('select', {'id': 'sauce-browser-2'}), " ",
                         newNode('select', {'id': 'sauce-version-2'})
                       )
                     ),
@@ -229,30 +245,30 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                 jQuery('#sauce-account-link').hide();
               }
               if (sel1) {
-                sauce.populateOSDropdown("sauce-os-1", sauceBrowsersTree1);
+                sauce.populateOSDropdown("sauce-os-1", sauceBrowsersTree1, sauce.getBrowserOptionPrefs(false));
                 jQuery('#sauce-os-1').change(function() {
-                  sauce.populateBrowserDropdown("sauce-browser-1", sauceBrowsersTree1, jQuery("#sauce-os-1").val());
-                  sauce.populateVersionDropdown("sauce-version-1", sauceBrowsersTree1, jQuery("#sauce-os-1").val(), jQuery("#sauce-browser-1").val());
+                  sauce.populateBrowserDropdown("sauce-browser-1", sauceBrowsersTree1, sauce.getBrowserOptionPrefs(false), jQuery("#sauce-os-1").val());
+                  sauce.populateVersionDropdown("sauce-version-1", sauceBrowsersTree1, sauce.getBrowserOptionPrefs(false), jQuery("#sauce-os-1").val(), jQuery("#sauce-browser-1").val());
                 });
-                sauce.populateBrowserDropdown("sauce-browser-1", sauceBrowsersTree1, jQuery("#sauce-os-1").val());
+                sauce.populateBrowserDropdown("sauce-browser-1", sauceBrowsersTree1, sauce.getBrowserOptionPrefs(false), jQuery("#sauce-os-1").val());
                 jQuery('#sauce-browser-1').change(function() {
-                  sauce.populateVersionDropdown("sauce-version-1", sauceBrowsersTree1, jQuery("#sauce-os-1").val(), jQuery("#sauce-browser-1").val());
+                  sauce.populateVersionDropdown("sauce-version-1", sauceBrowsersTree1, sauce.getBrowserOptionPrefs(false), jQuery("#sauce-os-1").val(), jQuery("#sauce-browser-1").val());
                 });
-                sauce.populateVersionDropdown("sauce-version-1", sauceBrowsersTree1, jQuery("#sauce-os-1").val(), jQuery("#sauce-browser-1").val());
+                sauce.populateVersionDropdown("sauce-version-1", sauceBrowsersTree1, sauce.getBrowserOptionPrefs(false), jQuery("#sauce-os-1").val(), jQuery("#sauce-browser-1").val());
               } else {
                 jQuery('#sauce-browser-1-tr').remove();
               }
               if (sel2) {
-                sauce.populateOSDropdown("sauce-os-2", sauceBrowsersTree2);
+                sauce.populateOSDropdown("sauce-os-2", sauceBrowsersTree2, sauce.getBrowserOptionPrefs(true));
                 jQuery('#sauce-os-2').change(function() {
-                  sauce.populateBrowserDropdown("sauce-browser-2", sauceBrowsersTree2, jQuery("#sauce-os-2").val());
-                  sauce.populateVersionDropdown("sauce-version-2", sauceBrowsersTree2, jQuery("#sauce-os-2").val(), jQuery("#sauce-browser-2").val());
+                  sauce.populateBrowserDropdown("sauce-browser-2", sauceBrowsersTree2, sauce.getBrowserOptionPrefs(true), jQuery("#sauce-os-2").val());
+                  sauce.populateVersionDropdown("sauce-version-2", sauceBrowsersTree2, sauce.getBrowserOptionPrefs(true), jQuery("#sauce-os-2").val(), jQuery("#sauce-browser-2").val());
                 });
-                sauce.populateBrowserDropdown("sauce-browser-2", sauceBrowsersTree2, jQuery("#sauce-os-2").val());
+                sauce.populateBrowserDropdown("sauce-browser-2", sauceBrowsersTree2, sauce.getBrowserOptionPrefs(true), jQuery("#sauce-os-2").val());
                 jQuery('#sauce-browser-2').change(function() {
-                  sauce.populateVersionDropdown("sauce-version-2", sauceBrowsersTree2, jQuery("#sauce-os-2").val(), jQuery("#sauce-browser-2").val());
+                  sauce.populateVersionDropdown("sauce-version-2", sauceBrowsersTree2, sauce.getBrowserOptionPrefs(true), jQuery("#sauce-os-2").val(), jQuery("#sauce-browser-2").val());
                 });
-                sauce.populateVersionDropdown("sauce-version-2", sauceBrowsersTree2, jQuery("#sauce-os-2").val(), jQuery("#sauce-browser-2").val());
+                sauce.populateVersionDropdown("sauce-version-2", sauceBrowsersTree2, sauce.getBrowserOptionPrefs(true), jQuery("#sauce-os-2").val(), jQuery("#sauce-browser-2").val());
               } else {
                 jQuery('#sauce-browser-2-tr').remove();
               }
@@ -303,29 +319,70 @@ sauce.browserOptionTree = function(entries) {
   return tree;
 };
 
-sauce.populateOSDropdown = function(id, tree) {
+sauce.populateOSDropdown = function(id, tree, prefs) {
+  var def = sauce.getDefaultOSChoice(prefs);
   jQuery('#' + id).html('');
   for (var k in tree) {
-    jQuery('#' + id).append(newNode("option", {value: k}, k));
+    if (k == def) {
+      jQuery('#' + id).append(newNode("option", {value: k, selected: "1"}, k));
+    } else {
+      jQuery('#' + id).append(newNode("option", {value: k}, k));
+    }
   }
 };
 
-sauce.populateBrowserDropdown = function(id, tree, os) {
+sauce.populateBrowserDropdown = function(id, tree, prefs, os) {
+  var def = sauce.getDefaultBrowserChoice(prefs, tree, os);
   jQuery('#' + id).html('');
   for (var k in tree[os].browsers) {
-    jQuery('#' + id).append(newNode("option", {value: k}, k));
+    if (k == def) {
+      jQuery('#' + id).append(newNode("option", {value: k, selected: "1"}, k));
+    } else {
+      jQuery('#' + id).append(newNode("option", {value: k}, k));
+    }
   }
 };
 
-sauce.populateVersionDropdown = function(id, tree, os, browser) {
+sauce.populateVersionDropdown = function(id, tree, prefs, os, browser) {
+  var def = sauce.getDefaultVersionChoice(prefs, tree, os, browser);
   jQuery('#' + id).html('');
   for (var k in tree[os].browsers[browser].versions) {
-    jQuery('#' + id).append(newNode("option", {value: k}, k));
+    if (k == def) {
+      jQuery('#' + id).append(newNode("option", {value: k, selected: "1"}, k));
+    } else {
+      jQuery('#' + id).append(newNode("option", {value: k}, k));
+    }
   }
 };
 
 sauce.getBrowserOptionChoice = function(tree, os, browser, version) {
   return tree[os] && tree[os].browsers[browser] && tree[os].browsers[browser].versions[version] ? tree[os].browsers[browser].versions[version].entry : null;
+};
+
+sauce.getDefaultOSChoice = function(prefs) {
+  return prefs.os || "Linux";
+};
+
+sauce.getDefaultBrowserChoice = function(prefs, tree, os) {
+  if (prefs.browsers && prefs.browsers[os]) { return prefs.browsers[os].name; }
+  if (tree[os] && tree[os].browsers["Firefox"]) { return "Firefox"; }
+  return null;
+};
+
+function padVersionString(s) {
+  return s.split(".").map(function(n) { return new Array(100 - n.length).join("0") + n; }).join(".");
+}
+
+sauce.getDefaultVersionChoice = function(prefs, tree, os, browser) {
+  if (prefs.browsers && prefs.browsers[os] && prefs.browsers[os].versions && prefs.browsers[os].versions[browser]) { return prefs.browsers[os].versions[browser]; }
+  if (tree[os] && tree[os].browsers[browser]) {
+    var v = null;
+    for (var k in tree[os].browsers[browser].versions) {
+      if (v == null || padVersionString(v) < padVersionString(k)) { v = k; }
+    }
+    return v;
+  }
+  return null;
 };
 
 sauce.settingspanel.hide = function() {
