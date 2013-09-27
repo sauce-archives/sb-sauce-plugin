@@ -109,16 +109,6 @@ sauce.setOldCredentials = function(username, accesskey) {
   bridge.prefManager.setCharPref("extensions.seleniumbuilder.plugins.sauce.accesskey", accesskey);
 };
 
-sauce.getBrowser = function(sel1) {
-  var prefName = sel1 ? "extensions.seleniumbuilder.plugins.sauce.browser_sel1" : "extensions.seleniumbuilder.plugins.sauce.browser";
-  return bridge.prefManager.prefHasUserValue(prefName) ? bridge.prefManager.getCharPref(prefName) : "";
-};
-
-sauce.setBrowser = function(browser, sel1) {
-  var prefName = sel1 ? "extensions.seleniumbuilder.plugins.sauce.browser_sel1" : "extensions.seleniumbuilder.plugins.sauce.browser";
-  bridge.prefManager.setCharPref(prefName, browser);
-};
-
 sauce.getBrowserOptionPrefs = function(sel2) {
   var prefName = sel2 ? "extensions.seleniumbuilder.plugins.sauce.browserOptions_sel2" : "extensions.seleniumbuilder.plugins.sauce.browserOptions_sel1";
   try {
@@ -128,7 +118,13 @@ sauce.getBrowserOptionPrefs = function(sel2) {
   }
 };
 
-sauce.setBrowserOptionPrefs = function(sel2, prefs) {
+sauce.setBrowserOptionPrefs = function(sel2, os, browser, version) {
+  var prefs = sauce.getBrowserOptionPrefs(sel2);
+  prefs.os = os;
+  if (!prefs.browsers) { prefs.browsers = {}; }
+  if (!prefs.browsers[os]) { prefs.browsers[os] = {name: browser, versions: {}}; }
+  prefs.browsers[os].name = browser;
+  prefs.browsers[os].versions[browser] = version;
   var prefName = sel2 ? "extensions.seleniumbuilder.plugins.sauce.browserOptions_sel2" : "extensions.seleniumbuilder.plugins.sauce.browserOptions_sel1";
   try {
     bridge.prefManager.setCharPref(prefName, JSON.stringify(prefs));
@@ -215,8 +211,8 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     var browser1 = sauce.getBrowserOptionChoice(sauceBrowsersTree1, jQuery("#sauce-os-1").val(), jQuery("#sauce-browser-1").val(), jQuery("#sauce-version-1").val());
                     var browser2 = sauce.getBrowserOptionChoice(sauceBrowsersTree2, jQuery("#sauce-os-2").val(), jQuery("#sauce-browser-2").val(), jQuery("#sauce-version-2").val());
                     sauce.setCredentials(username, accesskey);
-                    if (browser1) { sauce.setBrowser(sauce.browserOptionName(browser1), true); }
-                    if (browser2) { sauce.setBrowser(sauce.browserOptionName(browser2), false); }
+                    if (browser1) { sauce.setBrowserOptionPrefs(false, jQuery("#sauce-os-1").val(), jQuery("#sauce-browser-1").val(), jQuery("#sauce-version-1").val()); }
+                    if (browser2) { sauce.setBrowserOptionPrefs(true, jQuery("#sauce-os-2").val(), jQuery("#sauce-browser-2").val(), jQuery("#sauce-version-2").val()); }
                     sauce.setAutoShowJobPage(!!jQuery('#sauce-showjobpage').attr('checked'));
                     sauce.settingspanel.hide();
                     if (callback) {
