@@ -133,6 +133,22 @@ sauce.setBrowserOptionPrefs = function(sel2, os, browser, version) {
   } catch (e) { /* ignore */ }
 };
 
+sauce.getBrowserOptionSettings = function(sel2) {
+  var prefName = sel2 ? "extensions.seleniumbuilder.plugins.sauce.browserOptionSettings_sel2" : "extensions.seleniumbuilder.plugins.sauce.browserOptionSettings_sel1";
+  try {
+    return JSON.parse(bridge.prefManager.prefHasUserValue(prefName) ? bridge.prefManager.getCharPref(prefName) : "[]");
+  } catch (e) {
+    return [];
+  }
+};
+
+sauce.setBrowserOptionSettings = function(sel2, settings) {
+  var prefName = sel2 ? "extensions.seleniumbuilder.plugins.sauce.browserOptionSettings_sel2" : "extensions.seleniumbuilder.plugins.sauce.browserOptionSettings_sel1";
+  try {
+    bridge.prefManager.setCharPref(prefName, JSON.stringify(settings));
+  } catch (e) { /* ignore */ }
+};
+
 sauce.getAutoShowJobPage = function() {
   return bridge.prefManager.prefHasUserValue("extensions.seleniumbuilder.plugins.sauce.autoshowjobpage") ? bridge.prefManager.getBoolPref("extensions.seleniumbuilder.plugins.sauce.autoshowjobpage") : true;
 };
@@ -147,7 +163,7 @@ sauce.settingspanel.dialog = null;
 
 sauce.settingspanel.browserListEntryID = 1;
 
-sauce.addBrowserListEntry = function(sel2, sauceBrowsersTree1, sauceBrowsersTree2) {
+sauce.addBrowserListEntry = function(sel2, sauceBrowsersTree1, sauceBrowsersTree2, os, browser, version) {
   var v = sel2 ? '2' : '1';
   var tree = sel2 ? sauceBrowsersTree2 : sauceBrowsersTree1;
   var id = 'sauce-browser-' + v + '-list-' + sauce.settingspanel.browserListEntryID++;
@@ -167,6 +183,17 @@ sauce.addBrowserListEntry = function(sel2, sauceBrowsersTree1, sauceBrowsersTree
     sauce.populateVersionDropdown(id + "-version", tree, sauce.getBrowserOptionPrefs(sel2), jQuery("#" + id + "-os").val(), jQuery("#" + id + "-browser").val());
   });
   sauce.populateVersionDropdown(id + "-version", tree, sauce.getBrowserOptionPrefs(sel2), jQuery("#" + id + "-os").val(), jQuery("#" + id + "-browser").val());
+  if (os) {
+    jQuery("#" + id + "-os").val(os);
+    sauce.populateBrowserDropdown(id + "-browser", tree, sauce.getBrowserOptionPrefs(sel2), os);
+  }
+  if (browser) {
+    jQuery("#" + id + "-browser").val(browser);
+    sauce.populateVersionDropdown(id + "-version", tree, sauce.getBrowserOptionPrefs(sel2), jQuery("#" + id + "-os").val(), browser);
+  }
+  if (version) {
+    jQuery("#" + id + "-version").val(version);
+  }
 };
 
 sauce.settingspanel.show = function(sel1, sel2, callback) {
@@ -236,6 +263,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     jQuery('#sauce-browser-1-list select').each(function(i, dropdown) {
                       dropdownValues.push(jQuery(dropdown).val());
                     });
+                    if (dropdownValues.length > 0) { sauce.setBrowserOptionSettings(false, dropdownValues); }
                     var browsers1 = [];
                     for (var i = 0; i < dropdownValues.length; i += 3) {
                       sauce.setBrowserOptionPrefs(false, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
@@ -246,6 +274,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     jQuery('#sauce-browser-2-list select').each(function(i, dropdown) {
                       dropdownValues.push(jQuery(dropdown).val());
                     });
+                    if (dropdownValues.length > 0) { sauce.setBrowserOptionSettings(true, dropdownValues); }
                     var browsers2 = [];
                     for (var i = 0; i < dropdownValues.length; i += 3) {
                       sauce.setBrowserOptionPrefs(true, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
@@ -276,12 +305,26 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                 jQuery('#sauce-account-link').hide();
               }
               if (sel1) {
-                sauce.addBrowserListEntry(false, sauceBrowsersTree1, sauceBrowsersTree2);
+                var settings = sauce.getBrowserOptionSettings(false);
+                if (settings.length == 0) {
+                  sauce.addBrowserListEntry(false, sauceBrowsersTree1, sauceBrowsersTree2);
+                } else {
+                  for (var i = 0; i < settings.length; i += 3) {
+                    sauce.addBrowserListEntry(false, sauceBrowsersTree1, sauceBrowsersTree2, settings[i], settings[i + 1], settings[i + 2]);
+                  }
+                }
               } else {
                 jQuery('#sauce-browser-1-tr').remove();
               }
               if (sel2) {
-                sauce.addBrowserListEntry(true, sauceBrowsersTree1, sauceBrowsersTree2);
+                var settings = sauce.getBrowserOptionSettings(true);
+                if (settings.length == 0) {
+                  sauce.addBrowserListEntry(true, sauceBrowsersTree1, sauceBrowsersTree2);
+                } else {
+                  for (var i = 0; i < settings.length; i += 3) {
+                    sauce.addBrowserListEntry(true, sauceBrowsersTree1, sauceBrowsersTree2, settings[i], settings[i + 1], settings[i + 2]);
+                  }
+                }
               } else {
                 jQuery('#sauce-browser-2-tr').remove();
               }
