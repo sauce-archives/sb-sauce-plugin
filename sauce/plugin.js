@@ -240,7 +240,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     for (var i = 0; i < dropdownValues.length; i += 3) {
                       sauce.setBrowserOptionPrefs(false, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
                       var option = sauce.getBrowserOptionChoice(sauceBrowsersTree1, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
-                      browsers1.push({'username': username, 'accesskey': accesskey, 'browserstring1': option.selenium_name, 'browserversion1': option.short_version, 'platform1': option.os});
+                      browsers1.push({'username': username, 'accesskey': accesskey, 'browserstring1': option.selenium_name, 'browserversion1': option.short_version, 'platform1': option.os, 'name': [dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]].join(" ")});
                     }
                     dropdownValues = [];
                     jQuery('#sauce-browser-2-list select').each(function(i, dropdown) {
@@ -250,7 +250,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     for (var i = 0; i < dropdownValues.length; i += 3) {
                       sauce.setBrowserOptionPrefs(true, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
                       var option = sauce.getBrowserOptionChoice(sauceBrowsersTree2, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
-                      browsers2.push({'username': username, 'accesskey': accesskey, 'browserstring2': option.api_name, 'browserversion2': option.short_version, 'platform2': option.os});
+                      browsers2.push({'username': username, 'accesskey': accesskey, 'browserstring2': option.api_name, 'browserversion2': option.short_version, 'platform2': option.os, 'name': [dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]].join(" ")});
                     }
                     sauce.setAutoShowJobPage(!!jQuery('#sauce-showjobpage').attr('checked'));
                     sauce.settingspanel.hide();
@@ -644,8 +644,9 @@ for (var i = 0; i < to_add.length; i++) {
 sauce.runall = {};
 sauce.runall.dialog = null;
 
-sauce.runall.currentScriptIndex = -1;
 sauce.runall.scriptNames = [];
+sauce.runall.currentRunIndex = -1;
+sauce.runall.runs = [];
 
 sauce.runall.info_p = null;
 sauce.runall.scriptlist = null;
@@ -665,24 +666,51 @@ function makeViewResultLink(sid) {
   }}, _t('view_run_result'));
 }
 
-sauce.runall.run = function(settings) {
+sauce.runall.run = function(settings, runall) {
   jQuery('#edit-suite-editing').hide();
   sauce.runall.requestStop = false;
-  sauce.runall.settings = settings;
   
-  sauce.runall.scriptNames = builder.suite.getScriptNames();
-  
+  var scriptIndexes = [];
+  if (runall) {
+    for (var i = 0; i < builder.suite.getScriptNames().length; i++) { scriptIndexes.push(i); }
+  } else {
+    scriptIndexes = [builder.suite.getSelectedScriptIndex()];
+  }
+  sauce.runall.runs = [];
+  for (var i = 0; i < scriptIndexes.length; i++) {
+    var script = builder.suite.scripts[scriptIndexes[i]];
+    for (var j = 0; j < settings.sel1.length; j++) {
+      if (script.seleniumVersion == builder.selenium1) {
+        sauce.runall.runs.push({
+          'script': script,
+          'settings': settings.sel1[j],
+          'index': scriptIndexes[i]
+        });
+      }
+    }
+    for (var j = 0; j < settings.sel2.length; j++) {
+      if (script.seleniumVersion == builder.selenium2) {
+        sauce.runall.runs.push({
+          'script': script,
+          'settings': settings.sel2[j],
+          'index': scriptIndexes[i]
+        });
+      }
+    }
+  }
+      
   sauce.runall.info_p = newNode('p', {id:'infop'}, _t('running_scripts'));
   
   // Display the scripts in a similar fashion to the steps are shown in the record interface.
   sauce.runall.scriptlist = newFragment();
   
-  for (var i = 0; i < sauce.runall.scriptNames.length; i++) {
-    var name = sauce.runall.scriptNames[i];
+  sauce.runall.scriptNames = builder.suite.getScriptNames();
+  for (var i = 0; i < sauce.runall.runs.length; i++) {
+    var name = sauce.runall.scriptNames[sauce.runall.runs[i].index] + " " + sauce.runall.runs[i].settings.name;
     var sid = 'script-num-' + i;
 
     sauce.runall.scriptlist.appendChild(
-      newNode('div', {id: sid, 'class': 'b-suite-playback-script'},
+      newNode('div', {id: sid, 'class': 'b-suite-playback-script', style: 'padding: 2px;'},
         newNode('div',
           newNode('span', {}, name),
           makeViewResultLink(sid)
@@ -719,7 +747,7 @@ sauce.runall.run = function(settings) {
     
   builder.dialogs.show(sauce.runall.dialog);
   
-  sauce.runall.currentScriptIndex = -1; // Will get incremented to 0 in runNext.
+  sauce.runall.currentRunIndex = -1; // Will get incremented to 0 in runNext.
   sauce.runall.runNext();
 };
 
@@ -736,16 +764,16 @@ sauce.runall.stoprun = function() {
 
 sauce.runall.processResult = function(result) {
   if (result.url) {
-    jQuery("#script-num-" + sauce.runall.currentScriptIndex + "-view").attr('href', result.url).show();
+    jQuery("#script-num-" + sauce.runall.currentRunIndex + "-view").attr('href', result.url).show();
   }
   if (result.success) {
-    jQuery("#script-num-" + sauce.runall.currentScriptIndex).css('background-color', '#bfee85');
+    jQuery("#script-num-" + sauce.runall.currentRunIndex).css('background-color', '#bfee85');
   } else {
     if (result.errormessage) {
-      jQuery("#script-num-" + sauce.runall.currentScriptIndex).css('background-color', '#ff3333');
-      jQuery("#script-num-" + sauce.runall.currentScriptIndex + "-error").html(" " + result.errormessage).show();
+      jQuery("#script-num-" + sauce.runall.currentRunIndex).css('background-color', '#ff3333');
+      jQuery("#script-num-" + sauce.runall.currentRunIndex + "-error").html(" " + result.errormessage).show();
     } else {
-      jQuery("#script-num-" + sauce.runall.currentScriptIndex).css('background-color', '#ffcccc');
+      jQuery("#script-num-" + sauce.runall.currentRunIndex).css('background-color', '#ffcccc');
     }
   }
   sauce.runall.runNext();
@@ -756,18 +784,18 @@ sauce.runall.hide = function () {
 };
 
 sauce.runall.runNext = function() {
-  sauce.runall.currentScriptIndex++;
-  if (sauce.runall.currentScriptIndex < sauce.runall.scriptNames.length &&
+  sauce.runall.currentRunIndex++;
+  if (sauce.runall.currentRunIndex < sauce.runall.runs.length &&
       !sauce.runall.requestStop)
   {
-    jQuery("#script-num-" + sauce.runall.currentScriptIndex).css('background-color', '#ffffaa');
-    builder.suite.switchToScript(sauce.runall.currentScriptIndex);
+    jQuery("#script-num-" + sauce.runall.currentRunIndex).css('background-color', '#ffffaa');
+    builder.suite.switchToScript(sauce.runall.runs[sauce.runall.currentRunIndex].index);
     builder.stepdisplay.update();
     sauce.runall.currentPlayback = builder.getScript().seleniumVersion.rcPlayback;
     if (builder.getScript().seleniumVersion == builder.selenium1) {
-      sauce.runSel1ScriptWithSettings(sauce.runall.settings, sauce.runall.processResult);
+      sauce.runSel1ScriptWithSettings(sauce.runall.runs[sauce.runall.currentRunIndex].settings, sauce.runall.processResult);
     } else {
-      sauce.runSel2ScriptWithSettings(sauce.runall.settings, sauce.runall.processResult);
+      sauce.runSel2ScriptWithSettings(sauce.runall.runs[sauce.runall.currentRunIndex].settings, sauce.runall.processResult);
     }
   } else {
     jQuery('#suite-playback-stop').hide();
