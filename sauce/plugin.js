@@ -232,23 +232,34 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                   newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-ok', 'click': function() {
                     var username = jQuery('#sauce-username').val();
                     var accesskey = jQuery('#sauce-accesskey').val();
-                    var browser1 = sauce.getBrowserOptionChoice(sauceBrowsersTree1, jQuery("#sauce-os-1").val(), jQuery("#sauce-browser-1").val(), jQuery("#sauce-version-1").val());
-                    var browser2 = sauce.getBrowserOptionChoice(sauceBrowsersTree2, jQuery("#sauce-os-2").val(), jQuery("#sauce-browser-2").val(), jQuery("#sauce-version-2").val());
-                    sauce.setCredentials(username, accesskey);
-                    if (browser1) { sauce.setBrowserOptionPrefs(false, jQuery("#sauce-os-1").val(), jQuery("#sauce-browser-1").val(), jQuery("#sauce-version-1").val()); }
-                    if (browser2) { sauce.setBrowserOptionPrefs(true, jQuery("#sauce-os-2").val(), jQuery("#sauce-browser-2").val(), jQuery("#sauce-version-2").val()); }
+                    var dropdownValues = [];
+                    jQuery('#sauce-browser-1-list select').each(function(i, dropdown) {
+                      dropdownValues.push(jQuery(dropdown).val());
+                    });
+                    var browsers1 = [];
+                    for (var i = 0; i < dropdownValues.length; i += 3) {
+                      sauce.setBrowserOptionPrefs(false, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
+                      var option = sauce.getBrowserOptionChoice(sauceBrowsersTree1, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
+                      browsers1.push({'username': username, 'accesskey': accesskey, 'browserstring1': option.selenium_name, 'browserversion1': option.short_version, 'platform1': option.os});
+                    }
+                    dropdownValues = [];
+                    jQuery('#sauce-browser-2-list select').each(function(i, dropdown) {
+                      dropdownValues.push(jQuery(dropdown).val());
+                    });
+                    var browsers2 = [];
+                    for (var i = 0; i < dropdownValues.length; i += 3) {
+                      sauce.setBrowserOptionPrefs(true, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
+                      var option = sauce.getBrowserOptionChoice(sauceBrowsersTree2, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
+                      browsers2.push({'username': username, 'accesskey': accesskey, 'browserstring2': option.api_name, 'browserversion2': option.short_version, 'platform2': option.os});
+                    }
                     sauce.setAutoShowJobPage(!!jQuery('#sauce-showjobpage').attr('checked'));
                     sauce.settingspanel.hide();
                     if (callback) {
                       callback({
                         'username': username,
                         'accesskey': accesskey,
-                        'browserstring1': browser1 ? browser1.selenium_name : null,
-                        'browserstring2': browser2 ? browser2.api_name : null,
-                        'browserversion1': browser1 ? browser1.short_version : null,
-                        'browserversion2': browser2 ? browser2.short_version : null,
-                        'platform1': browser1 ? browser1.os : null,
-                        'platform2': browser2 ? browser2.os : null
+                        'sel1': browsers1,
+                        'sel2': browsers2
                       });
                     }
                   }}, _t('ok')),
@@ -528,14 +539,22 @@ builder.registerPostLoadHook(function() {
   builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand', function() {
     jQuery('#edit-rc-connecting').show();
     sauce.settingspanel.show(/*sel1*/ false, /*sel2*/ true, function(result) {
-      sauce.runSel2ScriptWithSettings(result);
+      if (result.sel2.length == 1) {
+        sauce.runSel2ScriptWithSettings(result.sel2[0]);
+      } else {
+        sauce.runall.run(result, false);
+      }
     });
   });
 
   builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand-sel1', function() {
     jQuery('#edit-rc-connecting').show();
-    sauce.settingspanel.show(/* sel1 */ true, /*sel1*/ false, function(result) {
-      sauce.runSel1ScriptWithSettings(result);
+    sauce.settingspanel.show(/* sel1 */ true, /*sel2*/ false, function(result) {
+      if (result.sel1.length == 1) {
+        sauce.runSel1ScriptWithSettings(result.sel1[0]);
+      } else {
+        sauce.runall.run(result, false);
+      }
     });
   });
   
@@ -552,7 +571,7 @@ builder.registerPostLoadHook(function() {
     }
     jQuery('#edit-rc-connecting').show();
     sauce.settingspanel.show(/* sel1 */ needs1, /* sel2*/ needs2, function(result) {
-      sauce.runall.run(result);
+      sauce.runall.run(result, true);
     });
   });
 });
