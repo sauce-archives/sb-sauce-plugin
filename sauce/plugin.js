@@ -160,6 +160,7 @@ sauce.setAutoShowJobPage = function(asjp) {
 sauce.settingspanel = {};
 /** The dialog. */
 sauce.settingspanel.dialog = null;
+sauce.settingspanel.open = false;
 
 sauce.settingspanel.browserListEntryID = 1;
 
@@ -197,8 +198,10 @@ sauce.addBrowserListEntry = function(sel2, sauceBrowsersTree1, sauceBrowsersTree
 };
 
 sauce.settingspanel.show = function(sel1, sel2, callback) {
-  if (sauce.settingspanel.dialog) { return; }
+  if (sauce.settingspanel.open) { return; }
+  sauce.settingspanel.open = true;
   jQuery('#edit-rc-connecting').show();
+  jQuery('#edit-panel').css('height', '29px');
   jQuery.ajax(
     "http://saucelabs.com/rest/v1/info/browsers",
     {
@@ -211,6 +214,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
               var sauceBrowsersTree2 = sauce.browserOptionTree(sauceBrowsers2);
               
               jQuery('#edit-rc-connecting').hide();
+              jQuery('#edit-panel').css('height', '');
               var credentials = sauce.getCredentials();
               sauce.settingspanel.dialog =
                 newNode('div', {'class': 'dialog'},
@@ -444,6 +448,7 @@ sauce.getDefaultVersionChoice = function(prefs, tree, os, browser) {
 sauce.settingspanel.hide = function() {
   jQuery(sauce.settingspanel.dialog).remove();
   sauce.settingspanel.dialog = null;
+  sauce.settingspanel.open = false;
 };
 
 sauce.runSel1ScriptWithSettings = function(result, callback) {
@@ -710,6 +715,8 @@ function makeViewResultLink(sid) {
 }
 
 sauce.runall.run = function(settings, runall) {
+  if (sauce.runall.open) { return; }
+  sauce.runall.open = true;
   jQuery('#edit-suite-editing').hide();
   sauce.runall.requestStop = false;
   
@@ -774,7 +781,7 @@ sauce.runall.run = function(settings, runall) {
   sauce.runall.close_b = newNode('a', _t('close'), {
     'class': 'button',
     click: function () {
-      jQuery(sauce.runall.dialog).remove();
+      sauce.runall.hide();
     },
     href: '#close'
   });
@@ -824,6 +831,7 @@ sauce.runall.processResult = function(result) {
 
 sauce.runall.hide = function () {
   jQuery(sauce.runall.dialog).remove();
+  sauce.runall.open = false;
 };
 
 sauce.runall.runNext = function() {
