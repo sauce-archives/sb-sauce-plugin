@@ -301,6 +301,9 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                   }}, _t('cancel'))
                 );
               builder.dialogs.show(sauce.settingspanel.dialog);
+              if (sauce.runall.playing && callback) {
+                jQuery('#sauce-ok').hide(); // Make the OK button for starting a new run invisible.
+              }
               if (sauce.getAutoShowJobPage()) {
                 jQuery('#sauce-showjobpage').attr('checked', 'checked');
               }
@@ -703,6 +706,7 @@ sauce.runall.close_b = null;
 
 sauce.runall.requestStop = false;
 sauce.runall.currentPlayback = null;
+sauce.runall.playing = false;
 
 sauce.runall.settings = null;
 
@@ -715,8 +719,9 @@ function makeViewResultLink(sid) {
 }
 
 sauce.runall.run = function(settings, runall) {
-  if (sauce.runall.open) { return; }
-  sauce.runall.open = true;
+  if (sauce.runall.playing) { return; }
+  sauce.runall.hide();
+  sauce.runall.playing = true;
   jQuery('#edit-suite-editing').hide();
   sauce.runall.requestStop = false;
   
@@ -831,7 +836,6 @@ sauce.runall.processResult = function(result) {
 
 sauce.runall.hide = function () {
   jQuery(sauce.runall.dialog).remove();
-  sauce.runall.open = false;
 };
 
 sauce.runall.runNext = function() {
@@ -849,6 +853,8 @@ sauce.runall.runNext = function() {
       sauce.runSel2ScriptWithSettings(sauce.runall.runs[sauce.runall.currentRunIndex].settings, sauce.runall.processResult);
     }
   } else {
+    sauce.runall.playing = false;
+    jQuery('#sauce-ok').show(); // Make the OK button for starting a new run visible.
     jQuery('#suite-playback-stop').hide();
     jQuery('#suite-playback-close').show();
     jQuery(sauce.runall.info_p).html(_t('done_exclamation'));
