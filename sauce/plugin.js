@@ -650,6 +650,7 @@ function createDerivedInfo(name) {
   builder.selenium2.io.addDerivedLangFormatter(name, {
     name: name + "/Sauce On Demand",
     get_params: function(script, callback) { sauce.settingspanel.show(/* sel1 */ false, /* sel2 */ true, function(response) {
+      response = response.sel2[0];
       if (response.browserstring2 == "internet explorer") {
         response.browserstring2 = "internetExplorer";
       }
