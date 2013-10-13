@@ -473,15 +473,17 @@ sauce.runSel1ScriptWithSettings = function(result, callback) {
           name = "Selenium Builder " + result.browserstring1 + " " + (result.browserversion1 ? result.browserversion1 + " " : "") + (result.platform1 ? result.platform1 + " " : "") + name;
         
           builder.selenium1.rcPlayback.run(
-            "ondemand.saucelabs.com:80",
-            JSON.stringify({
-              'username':        result.username,
-              'access-key':      result.accesskey,
-              'os':              result.platform1,
-              'browser':         result.browserstring1,
-              'browser-version': result.browserversion1,
-              'name':            name
-            }),
+            {
+              hostPort: "ondemand.saucelabs.com:80",
+              browserstring: JSON.stringify({
+                'username':        result.username,
+                'access-key':      result.accesskey,
+                'os':              result.platform1,
+                'browser':         result.browserstring1,
+                'browser-version': result.browserversion1,
+                'name':            name
+              }),
+            },
             // Postrun callback
             function (runResult) {
               var data = null;
@@ -537,10 +539,12 @@ sauce.runSel2ScriptWithSettings = function(result, callback) {
           alert(_t('__sauce_account_exhausted'));
         } else {
           builder.selenium2.rcPlayback.run(
-            result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
-            result.browserstring2,
-            result.browserversion2,
-            result.platform2,
+            {
+              hostPort: result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
+              browserstring: result.browserstring2,
+              browserversion: result.browserversion2,
+              platform: result.platform2
+            },
             // Postrun callback
             function (runResult) {
               var data = null;
