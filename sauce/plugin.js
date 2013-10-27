@@ -14,6 +14,7 @@ m.__sauce_browser_1 = "Sel 1 Browser";
 m.__sauce_browser_2 = "Sel 2 Browser";
 m.__sauce_add_config_line = "Add";
 m.__sauce_auto_show_job = "Automatically show Sauce jobs page";
+m.__sauce_parallel = "Run multiple tests in parallel";
 m.__sauce_connection_error = "Unable to connect to the Sauce servers: {0}";
 m.__sauce_on_os = "on";
 m.__sauce_run_ondemand = "Run on Sauce OnDemand";
@@ -32,6 +33,7 @@ m.__sauce_browser_1 = "Sel 1 Browser";
 m.__sauce_browser_2 = "Sel 2 Browser";
 m.__sauce_add_config_line = "Neue Zeile";
 m.__sauce_auto_show_job = "Automatisch Abspiel-Details zeigen";
+m.__sauce_parallel = "Mehrere Tests gleichzeitig abspielen";
 m.__sauce_connection_error = "Verbindung zum Server fehlgeschlagen: {0}";
 m.__sauce_on_os = "auf";
 m.__sauce_run_ondemand = "Auf Sauce OnDemand abspielen";
@@ -157,12 +159,23 @@ sauce.setAutoShowJobPage = function(asjp) {
   bridge.prefManager.setBoolPref("extensions.seleniumbuilder.plugins.sauce.autoshowjobpage", asjp);
 };
 
+sauce.getDoParallel = function() {
+  return bridge.prefManager.prefHasUserValue("extensions.seleniumbuilder.plugins.sauce.doparallel") ? bridge.prefManager.getBoolPref("extensions.seleniumbuilder.plugins.sauce.doparallel") : true;
+};
+
+sauce.setDoParallel = function(dp) {
+  bridge.prefManager.setBoolPref("extensions.seleniumbuilder.plugins.sauce.doparallel", dp);
+};
+
 sauce.settingspanel = {};
 /** The dialog. */
 sauce.settingspanel.dialog = null;
 sauce.settingspanel.open = false;
 
 sauce.settingspanel.browserListEntryID = 1;
+
+sauce.concurrency = 1;
+sauce.mac_concurrency = 1;
 
 sauce.addBrowserListEntry = function(sel2, sauceBrowsersTree1, sauceBrowsersTree2, os, browser, version) {
   var v = sel2 ? '2' : '1';
@@ -197,6 +210,23 @@ sauce.addBrowserListEntry = function(sel2, sauceBrowsersTree1, sauceBrowsersTree
   }
 };
 
+sauce.settingspanel.getLimits = function(username, accesskey, cb) {
+  jQuery.ajax(
+    "https://" + username + ":" + accesskey + "@saucelabs.com/rest/v1/" + username + "/limits",
+    {
+      "headers": {"Authorization": "Basic " + btoa(username + ":" + accesskey)},
+      success: function(ajr) {
+        sauce.concurrency = ajr.concurrency;
+        sauce.mac_concurrency = ajr.concurrency;
+        cb();
+      },
+      error: function() {
+        cb();
+      }
+    }
+  );
+};
+
 sauce.settingspanel.show = function(sel1, sel2, callback) {
   if (sauce.settingspanel.open) { return; }
   sauce.settingspanel.open = true;
@@ -212,7 +242,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
             success: function(sauceBrowsers2) {
               var sauceBrowsersTree1 = sauce.browserOptionTree(sauceBrowsers1);
               var sauceBrowsersTree2 = sauce.browserOptionTree(sauceBrowsers2);
-              
+        
               jQuery('#edit-rc-connecting').hide();
               jQuery('#edit-panel').css('height', '');
               var credentials = sauce.getCredentials();
@@ -258,6 +288,9 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     ),
                     newNode('tr',
                       newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-showjobpage'}), _t('__sauce_auto_show_job'))
+                    ),
+                    newNode('tr',
+                      newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-parallel'}), _t('__sauce_parallel', sauce.concurrency))
                     )
                   ),
                   newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-ok', 'click': function() {
@@ -286,6 +319,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                       browsers2.push({'username': username, 'accesskey': accesskey, 'browserstring2': option.api_name, 'browserversion2': option.short_version, 'platform2': option.os, 'name': [dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]].join(" ")});
                     }
                     sauce.setAutoShowJobPage(!!jQuery('#sauce-showjobpage').attr('checked'));
+                    sauce.setDoParallel(!!jQuery('#sauce-parallel').attr('checked'));
                     sauce.settingspanel.hide();
                     if (callback) {
                       callback({
@@ -306,6 +340,9 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
               }
               if (sauce.getAutoShowJobPage()) {
                 jQuery('#sauce-showjobpage').attr('checked', 'checked');
+              }
+              if (sauce.getDoParallel()) {
+                jQuery('#sauce-parallel').attr('checked', 'checked');
               }
               // Populate dialog.
               if (credentials.username != "") {
