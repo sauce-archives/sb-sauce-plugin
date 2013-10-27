@@ -471,7 +471,7 @@ sauce.runSel1ScriptWithSettings = function(result, callback) {
             name = name.split(".")[0];
           }
           name = "Selenium Builder " + result.browserstring1 + " " + (result.browserversion1 ? result.browserversion1 + " " : "") + (result.platform1 ? result.platform1 + " " : "") + name;
-        
+          builder.views.script.onStartRCPlayback();
           builder.selenium1.rcPlayback.run(
             {
               hostPort: "ondemand.saucelabs.com:80",
@@ -486,6 +486,7 @@ sauce.runSel1ScriptWithSettings = function(result, callback) {
             },
             // Postrun callback
             function (runResult) {
+              builder.views.script.onEndRCPlayback();
               var data = null;
               if (runResult.success || !runResult.errormessage) {
                 data = {"passed": runResult.success};
@@ -504,6 +505,7 @@ sauce.runSel1ScriptWithSettings = function(result, callback) {
             },
             // Start job callback
             function(rcResponse) {
+              builder.views.script.onConnectionEstablished();
               var sessionId = rcResponse.substring(3);
               sauce.currentSessionId = sessionId;
               if (sauce.getAutoShowJobPage()) {
@@ -516,7 +518,8 @@ sauce.runSel1ScriptWithSettings = function(result, callback) {
                 var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
                 builder.views.script.addClearResultsListener(hide);
               }
-            }
+            },
+            builder.stepdisplay.updateStepPlaybackState
           );
         }
       },
@@ -538,6 +541,7 @@ sauce.runSel2ScriptWithSettings = function(result, callback) {
         if (ajresult.minutes <= 0) {
           alert(_t('__sauce_account_exhausted'));
         } else {
+          builder.views.script.onStartRCPlayback();
           builder.selenium2.rcPlayback.run(
             {
               hostPort: result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
@@ -547,6 +551,7 @@ sauce.runSel2ScriptWithSettings = function(result, callback) {
             },
             // Postrun callback
             function (runResult) {
+              builder.views.script.onEndRCPlayback();
               var data = null;
               if (runResult.success || !runResult.errormessage) {
                 data = {"passed": runResult.success};
@@ -565,6 +570,7 @@ sauce.runSel2ScriptWithSettings = function(result, callback) {
             },
             // Start job callback
             function(response) {
+              builder.views.script.onConnectionEstablished();
               sauce.currentSessionId = response.sessionId;
               if (sauce.getAutoShowJobPage()) {
                 window.open("http://saucelabs.com/jobs/" + response.sessionId,'_newtab');
@@ -576,7 +582,8 @@ sauce.runSel2ScriptWithSettings = function(result, callback) {
                 var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
                 builder.views.script.addClearResultsListener(hide);
               }
-            }
+            },
+            builder.stepdisplay.updateStepPlaybackState
           );
         }
       },
