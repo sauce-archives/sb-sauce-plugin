@@ -525,7 +525,7 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
             },
             // Postrun callback
             function (runResult) {
-              builder.views.script.onEndRCPlayback();
+              if (!sauce.doparallel) { builder.views.script.onEndRCPlayback(); }
               var data = null;
               if (runResult.success || !runResult.errormessage) {
                 data = {"passed": runResult.success};
@@ -544,7 +544,7 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
             },
             // Start job callback
             function(rcResponse) {
-              builder.views.script.onConnectionEstablished();
+              if (!sauce.doparallel) { builder.views.script.onConnectionEstablished(); }
               var sessionId = rcResponse.substring(3);
               run.sessionId = sessionId;
               if (sauce.getAutoShowJobPage()) {
@@ -558,7 +558,7 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
                 builder.views.script.addClearResultsListener(hide);
               }
             },
-            builder.stepdisplay.updateStepPlaybackState
+            sauce.doparallel ? function(r, script, step, stepIndex, state, message, error, percentProgress) { sauce.runall.updateScriptPlaybackState(run.runIndex, r, script, step, stepIndex, state, message, error, percentProgress); } : builder.stepdisplay.updateStepPlaybackState
           );
         }
       },
@@ -622,7 +622,7 @@ sauce.runSel2ScriptWithSettings = function(result, callback, run) {
                 builder.views.script.addClearResultsListener(hide);
               }
             },
-            sauce.doparallel ? function() {} : builder.stepdisplay.updateStepPlaybackState
+            sauce.doparallel ? function(r, script, step, stepIndex, state, message, error, percentProgress) { sauce.runall.updateScriptPlaybackState(run.runIndex, r, script, step, stepIndex, state, message, error, percentProgress); } : builder.stepdisplay.updateStepPlaybackState
           );
         }
       },
@@ -783,6 +783,7 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
     scriptIndexes = [builder.suite.getSelectedScriptIndex()];
   }
   sauce.runall.runs = [];
+  var ri = 0;
   for (var i = 0; i < scriptIndexes.length; i++) {
     var script = builder.suite.scripts[scriptIndexes[i]];
     for (var j = 0; j < settings.sel1.length; j++) {
@@ -792,7 +793,8 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
           'settings': settings.sel1[j],
           'index': scriptIndexes[i],
           'sessionId': null,
-          'complete': false
+          'complete': false,
+          'runIndex': ri++
         });
       }
     }
@@ -803,7 +805,8 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
           'settings': settings.sel2[j],
           'index': scriptIndexes[i],
           'sessionId': null,
-          'complete': false
+          'complete': false,
+          'runIndex': ri++
         });
       }
     }
@@ -823,7 +826,9 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
       newNode('div', {id: sid, 'class': 'b-suite-playback-script', style: 'padding: 2px;'},
         newNode('div',
           newNode('span', {}, name),
-          makeViewResultLink(sid)
+          makeViewResultLink(sid),
+          newNode('div', {style:"width: 100px; height: 3px; background: #333333; display: none", id: i + "-run-progress-done"}),
+          newNode('div', {style:"width: 0px; height: 3px; background: #bbbbbb; position: relative; top: -3px; left: 100px; display: none", id: i + "-run-progress-notdone"})
         ),
         newNode('div', {'class':"step-error", id:sid + "-error", style:"display: none"})
       )
@@ -870,6 +875,23 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
   }
 };
 
+sauce.runall.updateScriptPlaybackState = function(runIndex, run, script, step, stepIndex, state, message, error, percentProgress) {
+  if (state == builder.stepdisplay.state.SUCCEEDED || state == builder.stepdisplay.state.FAILED || state == builder.stepdisplay.state.ERROR)
+  {
+    sauce.runall.setprogress(runIndex, 1 + (stepIndex + 1) * 99 / script.steps.length);
+  }
+}
+
+sauce.runall.setprogress = function(runIndex, percent) {
+  if (percent == 0) {
+    jQuery('#' + runIndex + '-run-progress-done').css('width', 0).hide();
+    jQuery('#' + runIndex + '-run-progress-notdone').css('left', 0).css('width', 100).hide();
+  } else {
+    jQuery('#' + runIndex + '-run-progress-done').css('width', percent).show();
+    jQuery('#' + runIndex + '-run-progress-notdone').css('left', percent).css('width', 100 - percent).show();
+  }
+};
+
 sauce.runall.stoprun = function() {
   sauce.runall.requestStop = true;
   jQuery('#suite-playback-stop').hide();
@@ -882,6 +904,7 @@ sauce.runall.stoprun = function() {
 };
 
 sauce.runall.processResult = function(result, runIndex) {
+  sauce.runall.setprogress(runIndex, 0);
   if (result.url) {
     jQuery("#script-num-" + runIndex + "-view").attr('href', result.url).show();
   }
