@@ -791,7 +791,8 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
           'script': script,
           'settings': settings.sel1[j],
           'index': scriptIndexes[i],
-          'sessionId': null
+          'sessionId': null,
+          'complete': false
         });
       }
     }
@@ -801,7 +802,8 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
           'script': script,
           'settings': settings.sel2[j],
           'index': scriptIndexes[i],
-          'sessionId': null
+          'sessionId': null,
+          'complete': false
         });
       }
     }
@@ -893,11 +895,19 @@ sauce.runall.processResult = function(result, runIndex) {
       jQuery("#script-num-" + runIndex).css('background-color', '#ffcccc');
     }
   }
+  sauce.runall.runs[runIndex].complete = true;
   sauce.runall.runNext();
 };
 
 sauce.runall.hide = function () {
   jQuery(sauce.runall.dialog).remove();
+};
+
+sauce.runall.allComplete = function() {
+  for (var i = 0; i < sauce.runall.runs.length; i++) {
+    if (!sauce.runall.runs[i].complete) { return false; }
+  }
+  return true;
 };
 
 sauce.runall.runNext = function() {
@@ -916,11 +926,13 @@ sauce.runall.runNext = function() {
       sauce.runSel2ScriptWithSettings(sauce.runall.runs[sauce.runall.currentRunIndex].settings, function(result) { sauce.runall.processResult(result, myRunIndex); }, sauce.runall.runs[sauce.runall.currentRunIndex]);
     }
   } else {
-    sauce.runall.playing = false;
-    jQuery('#sauce-ok').show(); // Make the OK button for starting a new run visible.
-    jQuery('#suite-playback-stop').hide();
-    jQuery('#suite-playback-close').show();
-    jQuery(sauce.runall.info_p).html(_t('done_exclamation'));
-    jQuery('#edit-suite-editing').show();
+    if (sauce.runall.allComplete()) {
+      sauce.runall.playing = false;
+      jQuery('#sauce-ok').show(); // Make the OK button for starting a new run visible.
+      jQuery('#suite-playback-stop').hide();
+      jQuery('#suite-playback-close').show();
+      jQuery(sauce.runall.info_p).html(_t('done_exclamation'));
+      jQuery('#edit-suite-editing').show();
+    }
   }
 };
