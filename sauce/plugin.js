@@ -175,6 +175,7 @@ sauce.settingspanel.open = false;
 sauce.settingspanel.browserListEntryID = 1;
 
 sauce.doparallel = sauce.getDoParallel();
+sauce.restoreParallel = false;
 sauce.concurrency = 1;
 sauce.mac_concurrency = 1;
 
@@ -343,8 +344,9 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
               if (sauce.getAutoShowJobPage()) {
                 jQuery('#sauce-showjobpage').attr('checked', 'checked');
               }
-              if (sauce.doparallel) {
+              if (sauce.doparallel || sauce.restoreParallel) {
                 jQuery('#sauce-parallel').attr('checked', 'checked');
+                sauce.restoreParallel = false;
               }
               // Populate dialog.
               if (credentials.username != "") {
@@ -641,6 +643,8 @@ builder.registerPostLoadHook(function() {
     jQuery('#edit-rc-connecting').show();
     sauce.settingspanel.show(/*sel1*/ false, /*sel2*/ true, function(result) {
       if (result.sel2.length == 1) {
+        sauce.doparallel = false;
+        sauce.restoreParallel = true; // Only turning off parallel for this run.
         sauce.runSel2ScriptWithSettings(result.sel2[0], function() {}, {});
       } else {
         sauce.runall.run(result, false, result.username, result.accesskey);
@@ -652,6 +656,8 @@ builder.registerPostLoadHook(function() {
     jQuery('#edit-rc-connecting').show();
     sauce.settingspanel.show(/* sel1 */ true, /*sel2*/ false, function(result) {
       if (result.sel1.length == 1) {
+        sauce.doparallel = false;
+        sauce.restoreParallel = true; // Only turning off parallel for this run.
         sauce.runSel1ScriptWithSettings(result.sel1[0], function() {}, {});
       } else {
         sauce.runall.run(result, false, result.username, result.accesskey);
