@@ -219,7 +219,7 @@ sauce.getLimits = function(username, accesskey, cb) {
       "headers": {"Authorization": "Basic " + btoa(username + ":" + accesskey)},
       success: function(ajr) {
         sauce.concurrency = ajr.concurrency;
-        sauce.mac_concurrency = ajr.concurrency;
+        sauce.mac_concurrency = ajr.mac_concurrency;
         cb();
       },
       error: function() {
@@ -753,8 +753,11 @@ sauce.runall = {};
 sauce.runall.dialog = null;
 
 sauce.runall.scriptNames = [];
-sauce.runall.currentRunIndex = -1;
 sauce.runall.runs = [];
+sauce.runall.macRunIndex = -1;
+sauce.runall.nonmacRunIndex = -1;
+sauce.runall.mac_runs = [];
+sauce.runall.nonmac_runs = [];
 
 sauce.runall.info_p = null;
 sauce.runall.scriptlist = null;
@@ -789,31 +792,41 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
     scriptIndexes = [builder.suite.getSelectedScriptIndex()];
   }
   sauce.runall.runs = [];
+  sauce.runall.mac_runs = [];
+  sauce.runall.nonmac_runs = [];
   var ri = 0;
   for (var i = 0; i < scriptIndexes.length; i++) {
     var script = builder.suite.scripts[scriptIndexes[i]];
     for (var j = 0; j < settings.sel1.length; j++) {
       if (script.seleniumVersion == builder.selenium1) {
-        sauce.runall.runs.push({
+        var isMac = settings.sel1[j].platform1.startsWith("Mac");
+        var new_run = {
           'script': script,
           'settings': settings.sel1[j],
           'index': scriptIndexes[i],
           'sessionId': null,
           'complete': false,
-          'runIndex': ri++
-        });
+          'runIndex': ri++,
+          'mac': isMac
+        };
+        sauce.runall.runs.push(new_run);
+        (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
       }
     }
     for (var j = 0; j < settings.sel2.length; j++) {
       if (script.seleniumVersion == builder.selenium2) {
-        sauce.runall.runs.push({
+        var isMac = settings.sel2[j].platform2.startsWith("Mac");
+        var new_run = {
           'script': script,
           'settings': settings.sel2[j],
           'index': scriptIndexes[i],
           'sessionId': null,
           'complete': false,
-          'runIndex': ri++
-        });
+          'runIndex': ri++,
+          'mac': isMac
+        };
+        sauce.runall.runs.push(new_run);
+        (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
       }
     }
   }
@@ -868,12 +881,16 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
     
   builder.dialogs.show(sauce.runall.dialog);
   
-  sauce.runall.currentRunIndex = -1; // Will get incremented to 0 in runNext.
+  sauce.runall.macRunIndex = -1; // Will get incremented to 0 in runNext.
+  sauce.runall.nonmacRunIndex = -1; // Will get incremented to 0 in runNext.
   
   if (sauce.doparallel) {
     sauce.getLimits(username, accesskey, function() {
-      for (var i = 0; i < sauce.concurrency; i++) {
-        sauce.runall.runNext();
+      for (var i = 0; i < Math.min(sauce.concurrency, sauce.runall.nonmac_runs.length); i++) {
+        sauce.runall.runNext(/*mac*/false);
+      }
+      for (var i = 0; i < Math.min(sauce.mac_concurrency, sauce.runall.mac_runs.length); i++) {
+        sauce.runall.runNext(/*mac*/true);
       }
     });
   } else {
@@ -925,7 +942,7 @@ sauce.runall.processResult = function(result, runIndex) {
     }
   }
   sauce.runall.runs[runIndex].complete = true;
-  sauce.runall.runNext();
+  sauce.runall.runNext(sauce.runall.runs[runIndex].mac);
 };
 
 sauce.runall.hide = function () {
@@ -939,29 +956,60 @@ sauce.runall.allComplete = function() {
   return true;
 };
 
-sauce.runall.runNext = function() {
-  sauce.runall.currentRunIndex++;
-  if (sauce.runall.currentRunIndex < sauce.runall.runs.length &&
-      !sauce.runall.requestStop)
-  {
-    jQuery("#script-num-" + sauce.runall.currentRunIndex).css('background-color', '#ffffaa');
-    builder.suite.switchToScript(sauce.runall.runs[sauce.runall.currentRunIndex].index);
-    builder.stepdisplay.update();
-    sauce.runall.currentPlayback = builder.getScript().seleniumVersion.rcPlayback;
-    var myRunIndex = sauce.runall.currentRunIndex;
-    if (builder.getScript().seleniumVersion == builder.selenium1) {
-      sauce.runSel1ScriptWithSettings(sauce.runall.runs[sauce.runall.currentRunIndex].settings, function(result) { sauce.runall.processResult(result, myRunIndex); }, sauce.runall.runs[sauce.runall.currentRunIndex]);
+sauce.runall.checkComplete = function() {
+  if (sauce.runall.allComplete()) {
+    sauce.runall.playing = false;
+    jQuery('#sauce-ok').show(); // Make the OK button for starting a new run visible.
+    jQuery('#suite-playback-stop').hide();
+    jQuery('#suite-playback-close').show();
+    jQuery(sauce.runall.info_p).html(_t('done_exclamation'));
+    jQuery('#edit-suite-editing').show();
+  }
+};
+
+sauce.runall.runNext = function(mac) {
+  var runIndex; // global index
+  if (sauce.doparallel) {
+    // respect mac-ness
+    if (mac) {
+      sauce.runall.macRunIndex++;
+      if (sauce.runall.macRunIndex < sauce.runall.mac_runs.length && !sauce.runall.requestStop) {
+        sauce.runall.runScript(sauce.runall.runs.indexOf(sauce.runall.mac_runs[sauce.runall.macRunIndex]));
+      } else {
+        sauce.runall.checkComplete();
+      }
     } else {
-      sauce.runSel2ScriptWithSettings(sauce.runall.runs[sauce.runall.currentRunIndex].settings, function(result) { sauce.runall.processResult(result, myRunIndex); }, sauce.runall.runs[sauce.runall.currentRunIndex]);
+      sauce.runall.nonmacRunIndex++;
+      if (sauce.runall.nonmacRunIndex < sauce.runall.nonmac_runs.length && !sauce.runall.requestStop) {
+        sauce.runall.runScript(sauce.runall.runs.indexOf(sauce.runall.nonmac_runs[sauce.runall.nonmacRunIndex]));
+      } else {
+        sauce.runall.checkComplete();
+      }
     }
   } else {
-    if (sauce.runall.allComplete()) {
-      sauce.runall.playing = false;
-      jQuery('#sauce-ok').show(); // Make the OK button for starting a new run visible.
-      jQuery('#suite-playback-stop').hide();
-      jQuery('#suite-playback-close').show();
-      jQuery(sauce.runall.info_p).html(_t('done_exclamation'));
-      jQuery('#edit-suite-editing').show();
+    // just pick one or the other
+    sauce.runall.macRunIndex++;
+    if (sauce.runall.macRunIndex < sauce.runall.mac_runs.length && !sauce.runall.requestStop) {
+      sauce.runall.runScript(sauce.runall.runs.indexOf(sauce.runall.mac_runs[sauce.runall.macRunIndex]));
+    } else {
+      sauce.runall.nonmacRunIndex++;
+      if (sauce.runall.nonmacRunIndex < sauce.runall.nonmac_runs.length && !sauce.runall.requestStop) {
+        sauce.runall.runScript(sauce.runall.runs.indexOf(sauce.runall.nonmac_runs[sauce.runall.nonmacRunIndex]));
+      } else {
+        sauce.runall.checkComplete();
+      }
     }
+  }
+};
+
+sauce.runall.runScript = function(runIndex) {
+  jQuery("#script-num-" + runIndex).css('background-color', '#ffffaa');
+  builder.suite.switchToScript(sauce.runall.runs[runIndex].index);
+  builder.stepdisplay.update();
+  sauce.runall.currentPlayback = builder.getScript().seleniumVersion.rcPlayback;
+  if (builder.getScript().seleniumVersion == builder.selenium1) {
+    sauce.runSel1ScriptWithSettings(sauce.runall.runs[runIndex].settings, function(result) { sauce.runall.processResult(result, runIndex); }, sauce.runall.runs[runIndex]);
+  } else {
+    sauce.runSel2ScriptWithSettings(sauce.runall.runs[runIndex].settings, function(result) { sauce.runall.processResult(result, runIndex); }, sauce.runall.runs[runIndex]);
   }
 };
