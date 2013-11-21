@@ -21,6 +21,8 @@ m.__sauce_run_ondemand = "Run on Sauce OnDemand";
 m.__sauce_run_suite_ondemand = "Run suite on Sauce OnDemand";
 m.__sauce_account_exhausted = "Your OnDemand account has run out of minutes.";
 m.__sauce_ondemand_connection_error = "Unable to connect to OnDemand: {0}";
+m.__sauce_run_stopped = "Stopped";
+m.__sauce_stopping = "Stopping...";
 // de
 m = builder.translate.locales['de'].mapping;
 m.__sauce_settings = "Sauce: Einstellungen";
@@ -40,6 +42,8 @@ m.__sauce_run_ondemand = "Auf Sauce OnDemand abspielen";
 m.__sauce_run_suite_ondemand = "Suite auf Sauce OnDemand abspielen";
 m.__sauce_account_exhausted = "Das OnDemand-Konto hat keine Minuten übrig.";
 m.__sauce_ondemand_connection_error = "Verbindung zum Server fehlgeschlagen: {0}";
+m.__sauce_run_stopped = "Gestoppt";
+m.__sauce_stopping = "Stoppe...";
 
 sauce.shutdown = function() {
 
@@ -512,7 +516,13 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
             name = name.split(".")[0];
           }
           name = "Selenium Builder " + result.browserstring1 + " " + (result.browserversion1 ? result.browserversion1 + " " : "") + (result.platform1 ? result.platform1 + " " : "") + name;
-          builder.views.script.onStartRCPlayback();
+          if (run.stopRequested) {
+            if (!sauce.doparallel) { builder.views.script.onEndRCPlayback(); }
+            jQuery("#script-num-" + run.runIndex).css('background-color', '#cccccc'); 
+            jQuery("#script-num-" + run.runIndex + "-error").html(_t("__sauce_run_stopped")).show();
+            return;
+          }
+          if (!sauce.doparallel) { builder.views.script.onStartRCPlayback(); }
           run.playbackRun = builder.selenium1.rcPlayback.run(
             {
               hostPort: "ondemand.saucelabs.com:80",
@@ -551,7 +561,7 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
               run.sessionId = sessionId;
               if (sauce.getAutoShowJobPage()) {
                 window.open("http://saucelabs.com/tests/" + sessionId,'_newtab');
-              } else {
+              } else if (!sauce.doparallel) {
                 var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
                   newNode('a', {'href': "http://saucelabs.com/jobs/" + sessionId, 'target': '_newtab'}, "Show job info")
                 );
@@ -581,7 +591,13 @@ sauce.runSel2ScriptWithSettings = function(result, callback, run) {
         jQuery('#edit-rc-connecting').hide();
         if (ajresult.minutes <= 0) {
           alert(_t('__sauce_account_exhausted'));
-        } else {
+        } else {  
+          if (run.stopRequested) {
+            if (!sauce.doparallel) { builder.views.script.onEndRCPlayback(); }
+            jQuery("#script-num-" + run.runIndex).css('background-color', '#cccccc'); 
+            jQuery("#script-num-" + run.runIndex + "-error").html(_t("__sauce_run_stopped")).show();
+            return;
+          }
           if (!sauce.doparallel) { builder.views.script.onStartRCPlayback(); }
           run.playbackRun = builder.selenium2.rcPlayback.run(
             {
@@ -808,7 +824,8 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
           'runIndex': ri++,
           'mac': isMac,
           'playbackRun': null,
-          'seleniumVersion': script.seleniumVersion
+          'seleniumVersion': script.seleniumVersion,
+          'stopRequested': false
         };
         sauce.runall.runs.push(new_run);
         (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
@@ -826,7 +843,8 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
           'runIndex': ri++,
           'mac': isMac,
           'playbackRun': null,
-          'seleniumVersion': script.seleniumVersion
+          'seleniumVersion': script.seleniumVersion,
+          'stopRequested': false
         };
         sauce.runall.runs.push(new_run);
         (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
@@ -845,7 +863,7 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
     var sid = 'script-num-' + i;
 
     sauce.runall.scriptlist.appendChild(
-      newNode('div', {id: sid, 'class': 'b-suite-playback-script', style: 'padding: 2px;'},
+      newNode('div', {id: sid, 'class': 'b-suite-playback-script', style: 'padding: 2px; padding-left: 5px; padding-right: 5px; margin-bottom: 1px; border-radius: 5px;'},
         newNode('div',
           newNode('span', {}, name),
           makeViewResultLink(sid),
@@ -919,9 +937,11 @@ sauce.runall.setprogress = function(runIndex, percent) {
 };
 
 sauce.runall.stoprun = function() {
+  jQuery(sauce.runall.info_p).html(_t('__sauce_stopping'));
   sauce.runall.requestStop = true;
   jQuery('#suite-playback-stop').hide();
   sauce.runall.runs.forEach(function (run) {
+    run.stopRequested = true;
     if (run.playbackRun) {
       run.seleniumVersion.rcPlayback.stopTest(run.playbackRun);
     }
@@ -933,14 +953,19 @@ sauce.runall.processResult = function(result, runIndex) {
   if (result.url) {
     jQuery("#script-num-" + runIndex + "-view").attr('href', result.url).show();
   }
-  if (result.success) {
-    jQuery("#script-num-" + runIndex).css('background-color', '#bfee85');
+  if (sauce.runall.runs[runIndex].stopRequested) {
+    jQuery("#script-num-" + runIndex).css('background-color', '#cccccc'); 
+    jQuery("#script-num-" + runIndex + "-error").html(_t("__sauce_run_stopped")).show();
   } else {
-    if (result.errormessage) {
-      jQuery("#script-num-" + runIndex).css('background-color', '#ff3333');
-      jQuery("#script-num-" + runIndex + "-error").html(" " + result.errormessage).show();
+    if (result.success) {
+      jQuery("#script-num-" + runIndex).css('background-color', '#bfee85');
     } else {
-      jQuery("#script-num-" + runIndex).css('background-color', '#ffcccc');
+      if (result.errormessage) {
+        jQuery("#script-num-" + runIndex).css('background-color', '#ff3333');
+        jQuery("#script-num-" + runIndex + "-error").html(" " + result.errormessage).show();
+      } else {
+        jQuery("#script-num-" + runIndex).css('background-color', '#ffcccc');
+      }
     }
   }
   sauce.runall.runs[runIndex].complete = true;
@@ -953,10 +978,17 @@ sauce.runall.hide = function () {
 };
 
 sauce.runall.allComplete = function() {
-  for (var i = 0; i < sauce.runall.runs.length; i++) {
-    if (!sauce.runall.runs[i].complete) { return false; }
+  if (sauce.runall.requestStop) {
+    for (var i = 0; i < sauce.runall.runs.length; i++) {
+      if (sauce.runall.runs[i].playbackRun) { return false; }
+    }
+    return true;
+  } else {
+    for (var i = 0; i < sauce.runall.runs.length; i++) {
+      if (!sauce.runall.runs[i].complete) { return false; }
+    }
+    return true;
   }
-  return true;
 };
 
 sauce.runall.checkComplete = function() {
