@@ -513,7 +513,7 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
           }
           name = "Selenium Builder " + result.browserstring1 + " " + (result.browserversion1 ? result.browserversion1 + " " : "") + (result.platform1 ? result.platform1 + " " : "") + name;
           builder.views.script.onStartRCPlayback();
-          builder.selenium1.rcPlayback.run(
+          run.playbackRun = builder.selenium1.rcPlayback.run(
             {
               hostPort: "ondemand.saucelabs.com:80",
               browserstring: JSON.stringify({
@@ -583,7 +583,7 @@ sauce.runSel2ScriptWithSettings = function(result, callback, run) {
           alert(_t('__sauce_account_exhausted'));
         } else {
           if (!sauce.doparallel) { builder.views.script.onStartRCPlayback(); }
-          builder.selenium2.rcPlayback.run(
+          run.playbackRun = builder.selenium2.rcPlayback.run(
             {
               hostPort: result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
               browserstring: result.browserstring2,
@@ -765,7 +765,6 @@ sauce.runall.stop_b = null;
 sauce.runall.close_b = null;
 
 sauce.runall.requestStop = false;
-sauce.runall.currentPlayback = null;
 sauce.runall.playing = false;
 
 sauce.runall.settings = null;
@@ -807,7 +806,9 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
           'sessionId': null,
           'complete': false,
           'runIndex': ri++,
-          'mac': isMac
+          'mac': isMac,
+          'playbackRun': null,
+          'seleniumVersion': script.seleniumVersion
         };
         sauce.runall.runs.push(new_run);
         (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
@@ -823,7 +824,9 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
           'sessionId': null,
           'complete': false,
           'runIndex': ri++,
-          'mac': isMac
+          'mac': isMac,
+          'playbackRun': null,
+          'seleniumVersion': script.seleniumVersion
         };
         sauce.runall.runs.push(new_run);
         (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
@@ -918,12 +921,11 @@ sauce.runall.setprogress = function(runIndex, percent) {
 sauce.runall.stoprun = function() {
   sauce.runall.requestStop = true;
   jQuery('#suite-playback-stop').hide();
-  try {
-    sauce.runall.currentPlayback.stopTest();
-  } catch (e) {
-    // In case we haven't actually started or have already finished, we don't really care if this
-    // goes wrong.
-  }
+  sauce.runall.runs.forEach(function (run) {
+    if (run.playbackRun) {
+      run.seleniumVersion.rcPlayback.stopTest(run.playbackRun);
+    }
+  });
 };
 
 sauce.runall.processResult = function(result, runIndex) {
@@ -942,6 +944,7 @@ sauce.runall.processResult = function(result, runIndex) {
     }
   }
   sauce.runall.runs[runIndex].complete = true;
+  sauce.runall.runs[runIndex].playbackRun = null;
   sauce.runall.runNext(sauce.runall.runs[runIndex].mac);
 };
 
@@ -1006,7 +1009,6 @@ sauce.runall.runScript = function(runIndex) {
   jQuery("#script-num-" + runIndex).css('background-color', '#ffffaa');
   builder.suite.switchToScript(sauce.runall.runs[runIndex].index);
   builder.stepdisplay.update();
-  sauce.runall.currentPlayback = builder.getScript().seleniumVersion.rcPlayback;
   if (builder.getScript().seleniumVersion == builder.selenium1) {
     sauce.runSel1ScriptWithSettings(sauce.runall.runs[runIndex].settings, function(result) { sauce.runall.processResult(result, runIndex); }, sauce.runall.runs[runIndex]);
   } else {
