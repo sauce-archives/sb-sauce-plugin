@@ -505,6 +505,8 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
     "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
     {
       success: function(ajresult) {
+        builder.suite.switchToScript(run.index);
+        builder.stepdisplay.update();
         jQuery('#edit-rc-connecting').hide();
         if (ajresult.minutes <= 0) {
           alert(_t('__sauce_account_exhausted'));
@@ -588,6 +590,8 @@ sauce.runSel2ScriptWithSettings = function(result, callback, run) {
     "http://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/users/" + result.username + "/",
     {
       success: function(ajresult) {
+        builder.suite.switchToScript(run.index);
+        builder.stepdisplay.update();
         jQuery('#edit-rc-connecting').hide();
         if (ajresult.minutes <= 0) {
           alert(_t('__sauce_account_exhausted'));
@@ -1038,9 +1042,7 @@ sauce.runall.runNext = function(mac) {
 
 sauce.runall.runScript = function(runIndex) {
   jQuery("#script-num-" + runIndex).css('background-color', '#ffffaa');
-  builder.suite.switchToScript(sauce.runall.runs[runIndex].index);
-  builder.stepdisplay.update();
-  if (builder.getScript().seleniumVersion == builder.selenium1) {
+  if (sauce.runall.runs[runIndex].script.seleniumVersion == builder.selenium1) {
     sauce.runSel1ScriptWithSettings(sauce.runall.runs[runIndex].settings, function(result) { sauce.runall.processResult(result, runIndex); }, sauce.runall.runs[runIndex]);
   } else {
     sauce.runSel2ScriptWithSettings(sauce.runall.runs[runIndex].settings, function(result) { sauce.runall.processResult(result, runIndex); }, sauce.runall.runs[runIndex]);
