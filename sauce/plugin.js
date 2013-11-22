@@ -907,11 +907,13 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
   
   if (sauce.doparallel) {
     sauce.getLimits(username, accesskey, function() {
-      for (var i = 0; i < Math.min(sauce.concurrency, sauce.runall.nonmac_runs.length); i++) {
-        sauce.runall.runNext(/*mac*/false);
-      }
-      for (var i = 0; i < Math.min(sauce.mac_concurrency, sauce.runall.mac_runs.length); i++) {
+      var macEnabled = Math.min(sauce.mac_concurrency, sauce.runall.mac_runs.length);
+      var nonMacEnabled = Math.min(sauce.concurrency - macEnabled, sauce.runall.nonmac_runs.length);
+      for (var i = 0; i < macEnabled; i++) {
         sauce.runall.runNext(/*mac*/true);
+      }
+      for (var i = 0; i < nonMacEnabled; i++) {
+        sauce.runall.runNext(/*mac*/false);
       }
     });
   } else {
@@ -1003,23 +1005,20 @@ sauce.runall.checkComplete = function() {
 };
 
 sauce.runall.runNext = function(mac) {
-  var runIndex; // global index
   if (sauce.doparallel) {
     // respect mac-ness
     if (mac) {
       sauce.runall.macRunIndex++;
       if (sauce.runall.macRunIndex < sauce.runall.mac_runs.length && !sauce.runall.requestStop) {
         sauce.runall.runScript(sauce.runall.runs.indexOf(sauce.runall.mac_runs[sauce.runall.macRunIndex]));
-      } else {
-        sauce.runall.checkComplete();
+        return;
       }
+    }
+    sauce.runall.nonmacRunIndex++;
+    if (sauce.runall.nonmacRunIndex < sauce.runall.nonmac_runs.length && !sauce.runall.requestStop) {
+      sauce.runall.runScript(sauce.runall.runs.indexOf(sauce.runall.nonmac_runs[sauce.runall.nonmacRunIndex]));
     } else {
-      sauce.runall.nonmacRunIndex++;
-      if (sauce.runall.nonmacRunIndex < sauce.runall.nonmac_runs.length && !sauce.runall.requestStop) {
-        sauce.runall.runScript(sauce.runall.runs.indexOf(sauce.runall.nonmac_runs[sauce.runall.nonmacRunIndex]));
-      } else {
-        sauce.runall.checkComplete();
-      }
+      sauce.runall.checkComplete();
     }
   } else {
     // just pick one or the other
