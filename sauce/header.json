@@ -1,8 +1,8 @@
 {
   "headerVersion": 1,
-  "pluginVersion": "1.2",
+  "pluginVersion": "1.2.1",
   "builderMinVersion": "2.1",
-  "builderMaxVersion": "2.1",
+  "builderMaxVersion": "2.1.1",
   "identifier": "sauce",
   "name": "Sauce for Selenium Builder",
   "description": "Enables export and playback on Sauce OnDemand.",
