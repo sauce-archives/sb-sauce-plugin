@@ -302,6 +302,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                   newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-ok', 'click': function() {
                     var username = jQuery('#sauce-username').val();
                     var accesskey = jQuery('#sauce-accesskey').val();
+                    sauce.setCredentials(username, accesskey);
                     var dropdownValues = [];
                     jQuery('#sauce-browser-1-list select').each(function(i, dropdown) {
                       dropdownValues.push(jQuery(dropdown).val());
