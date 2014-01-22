@@ -573,7 +573,8 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
                 builder.views.script.addClearResultsListener(hide);
               }
             },
-            sauce.doparallel ? function(r, script, step, stepIndex, state, message, error, percentProgress) { sauce.runall.updateScriptPlaybackState(run.runIndex, r, script, step, stepIndex, state, message, error, percentProgress); } : builder.stepdisplay.updateStepPlaybackState
+            sauce.doparallel ? function(r, script, step, stepIndex, state, message, error, percentProgress) { sauce.runall.updateScriptPlaybackState(run.runIndex, r, script, step, stepIndex, state, message, error, percentProgress); } : builder.stepdisplay.updateStepPlaybackState,
+            run.initialVars
           );
         }
       },
@@ -645,7 +646,8 @@ sauce.runSel2ScriptWithSettings = function(result, callback, run) {
                 builder.views.script.addClearResultsListener(hide);
               }
             },
-            sauce.doparallel ? function(r, script, step, stepIndex, state, message, error, percentProgress) { sauce.runall.updateScriptPlaybackState(run.runIndex, r, script, step, stepIndex, state, message, error, percentProgress); } : builder.stepdisplay.updateStepPlaybackState
+            sauce.doparallel ? function(r, script, step, stepIndex, state, message, error, percentProgress) { sauce.runall.updateScriptPlaybackState(run.runIndex, r, script, step, stepIndex, state, message, error, percentProgress); } : builder.stepdisplay.updateStepPlaybackState,
+            run.initialVars
           );
         }
       },
@@ -663,26 +665,14 @@ builder.registerPostLoadHook(function() {
   builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand', function() {
     jQuery('#edit-rc-connecting').show();
     sauce.settingspanel.show(/*sel1*/ false, /*sel2*/ true, function(result) {
-      if (result.sel2.length == 1) {
-        sauce.doparallel = false;
-        sauce.restoreParallel = true; // Only turning off parallel for this run.
-        sauce.runSel2ScriptWithSettings(result.sel2[0], function() {}, {});
-      } else {
-        sauce.runall.run(result, false, result.username, result.accesskey);
-      }
+      sauce.runall.run(result, false, result.username, result.accesskey);
     });
   });
 
   builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand-sel1', function() {
     jQuery('#edit-rc-connecting').show();
     sauce.settingspanel.show(/* sel1 */ true, /*sel2*/ false, function(result) {
-      if (result.sel1.length == 1) {
-        sauce.doparallel = false;
-        sauce.restoreParallel = true; // Only turning off parallel for this run.
-        sauce.runSel1ScriptWithSettings(result.sel1[0], function() {}, {});
-      } else {
-        sauce.runall.run(result, false, result.username, result.accesskey);
-      }
+      sauce.runall.run(result, false, result.username, result.accesskey);
     });
   });
   
@@ -805,125 +795,147 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
   jQuery('#edit-suite-editing').hide();
   sauce.runall.requestStop = false;
   
+  var scripts = [];
   var scriptIndexes = [];
   if (runall) {
     for (var i = 0; i < builder.suite.getScriptNames().length; i++) { scriptIndexes.push(i); }
+    scripts = builder.suite.scripts;
   } else {
     scriptIndexes = [builder.suite.getSelectedScriptIndex()];
+    scripts = [builder.getScript()];
   }
-  sauce.runall.runs = [];
-  sauce.runall.mac_runs = [];
-  sauce.runall.nonmac_runs = [];
-  var ri = 0;
-  for (var i = 0; i < scriptIndexes.length; i++) {
-    var script = builder.suite.scripts[scriptIndexes[i]];
-    for (var j = 0; j < settings.sel1.length; j++) {
-      if (script.seleniumVersion == builder.selenium1) {
-        var isMac = settings.sel1[j].platform1.startsWith("Mac");
-        var new_run = {
-          'script': script,
-          'settings': settings.sel1[j],
-          'index': scriptIndexes[i],
-          'sessionId': null,
-          'complete': false,
-          'runIndex': ri++,
-          'mac': isMac,
-          'playbackRun': null,
-          'seleniumVersion': script.seleniumVersion,
-          'stopRequested': false
-        };
-        sauce.runall.runs.push(new_run);
-        (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
-      }
-    }
-    for (var j = 0; j < settings.sel2.length; j++) {
-      if (script.seleniumVersion == builder.selenium2) {
-        var isMac = settings.sel2[j].platform2.startsWith("Mac");
-        var new_run = {
-          'script': script,
-          'settings': settings.sel2[j],
-          'index': scriptIndexes[i],
-          'sessionId': null,
-          'complete': false,
-          'runIndex': ri++,
-          'mac': isMac,
-          'playbackRun': null,
-          'seleniumVersion': script.seleniumVersion,
-          'stopRequested': false
-        };
-        sauce.runall.runs.push(new_run);
-        (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
-      }
-    }
-  }
-      
-  sauce.runall.info_p = newNode('p', {id:'infop'}, _t('running_scripts'));
-  
-  // Display the scripts in a similar fashion to the steps are shown in the record interface.
-  sauce.runall.scriptlist = newFragment();
-  
   sauce.runall.scriptNames = builder.suite.getScriptNames();
-  for (var i = 0; i < sauce.runall.runs.length; i++) {
-    var name = sauce.runall.scriptNames[sauce.runall.runs[i].index] + " " + sauce.runall.runs[i].settings.name;
-    var sid = 'script-num-' + i;
+  builder.dialogs.runall.getAllRows(scripts, function(scriptsIndexToRows) {
+    sauce.runall.runs = [];
+    sauce.runall.mac_runs = [];
+    sauce.runall.nonmac_runs = [];
+    var ri = 0;
+    for (var i = 0; i < scriptIndexes.length; i++) {
+      var script = builder.suite.scripts[scriptIndexes[i]];
+      var rows = scriptsIndexToRows[i];
+      for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+        var row = rows[rowIndex];
+        for (var j = 0; j < settings.sel1.length; j++) {
+          if (script.seleniumVersion == builder.selenium1) {
+            var name = sauce.runall.scriptNames[scriptIndexes[i]] + " " + settings.sel1[j].name;
+            if (rows.length > 1) {
+              name += " " + _t('row', rowIndex);
+            }
+            var isMac = settings.sel1[j].platform1.startsWith("Mac");
+            var new_run = {
+              'name': name,
+              'script': script,
+              'settings': settings.sel1[j],
+              'index': scriptIndexes[i],
+              'sessionId': null,
+              'complete': false,
+              'runIndex': ri++,
+              'mac': isMac,
+              'playbackRun': null,
+              'seleniumVersion': script.seleniumVersion,
+              'stopRequested': false,
+              'initialVars': row
+            };
+            sauce.runall.runs.push(new_run);
+            (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
+          }
+        }
+        for (var j = 0; j < settings.sel2.length; j++) {
+          if (script.seleniumVersion == builder.selenium2) {
+            var name = sauce.runall.scriptNames[scriptIndexes[i]] + " " + settings.sel2[j].name;
+            if (rows.length > 1) {
+              name += " " + _t('row', rowIndex);
+            }
+            var isMac = settings.sel2[j].platform2.startsWith("Mac");
+            var new_run = {
+              'name': name,
+              'script': script,
+              'settings': settings.sel2[j],
+              'index': scriptIndexes[i],
+              'sessionId': null,
+              'complete': false,
+              'runIndex': ri++,
+              'mac': isMac,
+              'playbackRun': null,
+              'seleniumVersion': script.seleniumVersion,
+              'stopRequested': false,
+              'initialVars': row
+            };
+            sauce.runall.runs.push(new_run);
+            (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
+          }
+        }
+      } // End loop over rows
+    } // End loop over scripts
+      
+    sauce.runall.info_p = newNode('p', {id:'infop'}, _t('running_scripts'));
+  
+    // Display the scripts in a similar fashion to the steps are shown in the record interface.
+    sauce.runall.scriptlist = newFragment();
+  
+    for (var i = 0; i < sauce.runall.runs.length; i++) {
+      //var name = sauce.runall.scriptNames[sauce.runall.runs[i].index] + " " + sauce.runall.runs[i].settings.name;
+      var name = sauce.runall.runs[i].name;
+      var sid = 'script-num-' + i;
 
-    sauce.runall.scriptlist.appendChild(
-      newNode('div', {id: sid, 'class': 'b-suite-playback-script', style: 'padding: 2px; padding-left: 5px; padding-right: 5px; margin-bottom: 1px; border-radius: 5px;'},
-        newNode('div',
-          newNode('span', {}, name),
-          makeViewResultLink(sid),
-          newNode('div', {style:"width: 100px; height: 3px; background: #333333; display: none", id: i + "-run-progress-done"}),
-          newNode('div', {style:"width: 0px; height: 3px; background: #bbbbbb; position: relative; top: -3px; left: 100px; display: none", id: i + "-run-progress-notdone"})
-        ),
-        newNode('div', {'class':"step-error", id:sid + "-error", style:"display: none"})
-      )
-    );
-  }
+      sauce.runall.scriptlist.appendChild(
+        newNode('div', {id: sid, 'class': 'b-suite-playback-script', style: 'padding: 2px; padding-left: 5px; padding-right: 5px; margin-bottom: 1px; border-radius: 5px;'},
+          newNode('div',
+            newNode('span', {}, name),
+            makeViewResultLink(sid),
+            newNode('div', {style:"width: 100px; height: 3px; background: #333333; display: none", id: i + "-run-progress-done"}),
+            newNode('div', {style:"width: 0px; height: 3px; background: #bbbbbb; position: relative; top: -3px; left: 100px; display: none", id: i + "-run-progress-notdone"})
+          ),
+          newNode('div', {'class':"step-error", id:sid + "-error", style:"display: none"})
+        )
+      );
+    }
   
-  sauce.runall.stop_b = newNode('a', _t('stop'), {
-    'class': 'button',
-    click: function () {
-      sauce.runall.stoprun();
-    },
-    href: '#stop'
-  });
-  
-  sauce.runall.close_b = newNode('a', _t('close'), {
-    'class': 'button',
-    click: function () {
-      sauce.runall.hide();
-    },
-    href: '#close'
-  });
-  
-  sauce.runall.dialog = newNode('div', {'class': 'dialog'});
-  jQuery(sauce.runall.dialog)
-    .append(sauce.runall.info_p)
-    .append(sauce.runall.scriptlist)
-    .append(newNode('p',
-      newNode('span', {id: 'suite-playback-stop'}, sauce.runall.stop_b),
-      newNode('span', {id: 'suite-playback-close', style: 'display: none;'}, sauce.runall.close_b)
-    ));
-    
-  builder.dialogs.show(sauce.runall.dialog);
-  
-  sauce.runall.macRunIndex = -1; // Will get incremented to 0 in runNext.
-  sauce.runall.nonmacRunIndex = -1; // Will get incremented to 0 in runNext.
-  
-  if (sauce.doparallel) {
-    sauce.getLimits(username, accesskey, function() {
-      var macEnabled = Math.min(sauce.mac_concurrency, sauce.runall.mac_runs.length);
-      var nonMacEnabled = Math.min(sauce.concurrency - macEnabled, sauce.runall.nonmac_runs.length);
-      for (var i = 0; i < macEnabled; i++) {
-        sauce.runall.runNext(/*mac*/true);
-      }
-      for (var i = 0; i < nonMacEnabled; i++) {
-        sauce.runall.runNext(/*mac*/false);
-      }
+    sauce.runall.stop_b = newNode('a', _t('stop'), {
+      'class': 'button',
+      click: function () {
+        sauce.runall.stoprun();
+      },
+      href: '#stop'
     });
-  } else {
-    sauce.runall.runNext();
-  }
+  
+    sauce.runall.close_b = newNode('a', _t('close'), {
+      'class': 'button',
+      click: function () {
+        sauce.runall.hide();
+      },
+      href: '#close'
+    });
+  
+    sauce.runall.dialog = newNode('div', {'class': 'dialog'});
+    jQuery(sauce.runall.dialog)
+      .append(sauce.runall.info_p)
+      .append(sauce.runall.scriptlist)
+      .append(newNode('p',
+        newNode('span', {id: 'suite-playback-stop'}, sauce.runall.stop_b),
+        newNode('span', {id: 'suite-playback-close', style: 'display: none;'}, sauce.runall.close_b)
+      ));
+    
+    builder.dialogs.show(sauce.runall.dialog);
+  
+    sauce.runall.macRunIndex = -1; // Will get incremented to 0 in runNext.
+    sauce.runall.nonmacRunIndex = -1; // Will get incremented to 0 in runNext.
+  
+    if (sauce.doparallel) {
+      sauce.getLimits(username, accesskey, function() {
+        var macEnabled = Math.min(sauce.mac_concurrency, sauce.runall.mac_runs.length);
+        var nonMacEnabled = Math.min(sauce.concurrency - macEnabled, sauce.runall.nonmac_runs.length);
+        for (var i = 0; i < macEnabled; i++) {
+          sauce.runall.runNext(/*mac*/true);
+        }
+        for (var i = 0; i < nonMacEnabled; i++) {
+          sauce.runall.runNext(/*mac*/false);
+        }
+      });
+    } else {
+      sauce.runall.runNext();
+    }
+  });
 };
 
 sauce.runall.updateScriptPlaybackState = function(runIndex, run, script, step, stepIndex, state, message, error, percentProgress) {
