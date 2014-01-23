@@ -915,11 +915,17 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
         newNode('span', {id: 'suite-playback-stop'}, sauce.runall.stop_b),
         newNode('span', {id: 'suite-playback-close', style: 'display: none;'}, sauce.runall.close_b)
       ));
-    
-    builder.dialogs.show(sauce.runall.dialog);
-  
+      
     sauce.runall.macRunIndex = -1; // Will get incremented to 0 in runNext.
     sauce.runall.nonmacRunIndex = -1; // Will get incremented to 0 in runNext.
+    
+    if (sauce.runall.runs.length == 1 && sauce.doparallel) {
+      sauce.doparallel = false;
+      sauce.restoreParallel = true; // Only turning off parallel for this run.
+      sauce.runall.dialog = null;
+    } else {
+      builder.dialogs.show(sauce.runall.dialog);
+    }
   
     if (sauce.doparallel) {
       sauce.getLimits(username, accesskey, function() {
