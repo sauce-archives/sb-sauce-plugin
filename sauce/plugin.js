@@ -179,9 +179,26 @@ sauce.settingspanel.open = false;
 sauce.settingspanel.browserListEntryID = 1;
 
 sauce.doparallel = sauce.getDoParallel();
+sauce.breakpointsWereEnabled = true;
+sauce.restoreBreakpoints = false;
 sauce.restoreParallel = false;
 sauce.concurrency = 1;
 sauce.mac_concurrency = 1;
+
+sauce.storeAndDisableBreakpointsState = function() {
+  if (!sauce.restoreBreakpoints) {
+    sauce.breakpointsWereEnabled = builder.breakpointsEnabled;
+    builder.breakpointsEnabled = false;
+    sauce.restoreBreakpoints = true;
+  }
+};
+
+sauce.restoreBreakpointsState = function() {
+  if (sauce.restoreBreakpoints) {
+    builder.breakpointsEnabled = sauce.breakpointsWereEnabled;
+    sauce.restoreBreakpoints = false;
+  }
+};
 
 sauce.addBrowserListEntry = function(sel2, sauceBrowsersTree1, sauceBrowsersTree2, os, browser, version) {
   var v = sel2 ? '2' : '1';
@@ -328,6 +345,9 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     sauce.setAutoShowJobPage(!!jQuery('#sauce-showjobpage').attr('checked'));
                     sauce.setDoParallel(!!jQuery('#sauce-parallel').attr('checked'));
                     sauce.doparallel = !!jQuery('#sauce-parallel').attr('checked');
+                    if (sauce.doparallel) {
+                      sauce.storeAndDisableBreakpointsState();
+                    }
                     sauce.settingspanel.hide();
                     if (callback) {
                       callback({
@@ -574,7 +594,8 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
               }
             },
             sauce.doparallel ? function(r, script, step, stepIndex, state, message, error, percentProgress) { sauce.runall.updateScriptPlaybackState(run.runIndex, r, script, step, stepIndex, state, message, error, percentProgress); } : builder.stepdisplay.updateStepPlaybackState,
-            run.initialVars
+            run.initialVars,
+            sauce.doparallel ? null : builder.views.script.onPauseRCPlayback
           );
         }
       },
@@ -647,7 +668,8 @@ sauce.runSel2ScriptWithSettings = function(result, callback, run) {
               }
             },
             sauce.doparallel ? function(r, script, step, stepIndex, state, message, error, percentProgress) { sauce.runall.updateScriptPlaybackState(run.runIndex, r, script, step, stepIndex, state, message, error, percentProgress); } : builder.stepdisplay.updateStepPlaybackState,
-            run.initialVars
+            run.initialVars,
+            sauce.doparallel ? null : builder.views.script.onPauseRCPlayback
           );
         }
       },
@@ -1018,6 +1040,7 @@ sauce.runall.allComplete = function() {
 
 sauce.runall.checkComplete = function() {
   if (sauce.runall.allComplete()) {
+    sauce.restoreBreakpointsState();
     sauce.runall.playing = false;
     jQuery('#sauce-ok').show(); // Make the OK button for starting a new run visible.
     jQuery('#suite-playback-stop').hide();
