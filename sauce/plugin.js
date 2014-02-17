@@ -15,6 +15,7 @@ m.__sauce_browser_2 = "Sel 2 Browser";
 m.__sauce_add_config_line = "Add";
 m.__sauce_auto_show_job = "Automatically show Sauce jobs page";
 m.__sauce_parallel = "Run multiple tests in parallel";
+m.__sauce_parallel_disabled = "Parallel playback disabled when state is shared across suite"
 m.__sauce_connection_error = "Unable to connect to the Sauce servers: {0}";
 m.__sauce_on_os = "on";
 m.__sauce_run_ondemand = "Run on Sauce OnDemand";
@@ -36,6 +37,7 @@ m.__sauce_browser_2 = "Sel 2 Browser";
 m.__sauce_add_config_line = "Neue Zeile";
 m.__sauce_auto_show_job = "Automatisch Abspiel-Details zeigen";
 m.__sauce_parallel = "Mehrere Tests gleichzeitig abspielen";
+m.__sauce_parallel_disabled = "Tests können nicht gleichzeitig abgespielt werden wenn Suites Daten teilen"
 m.__sauce_connection_error = "Verbindung zum Server fehlgeschlagen: {0}";
 m.__sauce_on_os = "auf";
 m.__sauce_run_ondemand = "Auf Sauce OnDemand abspielen";
@@ -313,7 +315,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                       newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-showjobpage'}), _t('__sauce_auto_show_job'))
                     ),
                     newNode('tr',
-                      newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-parallel'}), _t('__sauce_parallel', sauce.concurrency))
+                      newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-parallel'}), builder.shareSuiteState ? _t('__sauce_parallel_disabled') : _t('__sauce_parallel', sauce.concurrency))
                     )
                   ),
                   newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-ok', 'click': function() {
@@ -344,7 +346,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     }
                     sauce.setAutoShowJobPage(!!jQuery('#sauce-showjobpage').attr('checked'));
                     sauce.setDoParallel(!!jQuery('#sauce-parallel').attr('checked'));
-                    sauce.doparallel = !!jQuery('#sauce-parallel').attr('checked');
+                    sauce.doparallel = !!jQuery('#sauce-parallel').attr('checked') && !builder.shareSuiteState;
                     if (sauce.doparallel) {
                       sauce.storeAndDisableBreakpointsState();
                     }
@@ -369,9 +371,12 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
               if (sauce.getAutoShowJobPage()) {
                 jQuery('#sauce-showjobpage').attr('checked', 'checked');
               }
-              if (sauce.doparallel || sauce.restoreParallel) {
+              if (sauce.getDoParallel() || sauce.restoreParallel) {
                 jQuery('#sauce-parallel').attr('checked', 'checked');
                 sauce.restoreParallel = false;
+              }
+              if (builder.shareSuiteState) {
+                jQuery('#sauce-parallel').attr('disabled', 'disabled');
               }
               // Populate dialog.
               if (credentials.username != "") {
