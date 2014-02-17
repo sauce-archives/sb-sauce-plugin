@@ -836,64 +836,71 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
     sauce.runall.runs = [];
     sauce.runall.mac_runs = [];
     sauce.runall.nonmac_runs = [];
+    
     var ri = 0;
-    for (var i = 0; i < scriptIndexes.length; i++) {
-      var script = builder.suite.scripts[scriptIndexes[i]];
-      var rows = scriptsIndexToRows[i];
-      for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-        var row = rows[rowIndex];
-        for (var j = 0; j < settings.sel1.length; j++) {
-          if (script.seleniumVersion == builder.selenium1) {
-            var name = sauce.runall.scriptNames[scriptIndexes[i]] + " " + settings.sel1[j].name;
-            if (rows.length > 1) {
-              name += " " + _t('row', rowIndex);
-            }
-            var isMac = settings.sel1[j].platform1.startsWith("Mac");
-            var new_run = {
-              'name': name,
-              'script': script,
-              'settings': settings.sel1[j],
-              'index': scriptIndexes[i],
-              'sessionId': null,
-              'complete': false,
-              'runIndex': ri++,
-              'mac': isMac,
-              'playbackRun': null,
-              'seleniumVersion': script.seleniumVersion,
-              'stopRequested': false,
-              'initialVars': row
-            };
-            sauce.runall.runs.push(new_run);
-            (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
+    for (var settingsIndex = 0; settingsIndex < settings.sel1.length; settingsIndex++) {
+      for (var scriptIndex = 0; scriptIndex < scriptIndexes.length; scriptIndex++) {
+        var script = builder.suite.scripts[scriptIndexes[scriptIndex]];
+        if (script.seleniumVersion != builder.selenium1) { continue; }
+        var rows = scriptsIndexToRows[scriptIndex];
+        for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          var row = rows[rowIndex];
+          var name = sauce.runall.scriptNames[scriptIndexes[scriptIndex]] + " " + settings.sel1[settingsIndex].name;
+          if (rows.length > 1) {
+            name += " " + _t('row', rowIndex);
           }
+          var isMac = settings.sel1[settingsIndex].platform1.startsWith("Mac");
+          var new_run = {
+            'name': name,
+            'script': script,
+            'settings': settings.sel1[settingsIndex],
+            'index': scriptIndexes[settingsIndex],
+            'sessionId': null,
+            'complete': false,
+            'runIndex': ri++,
+            'mac': isMac,
+            'playbackRun': null,
+            'seleniumVersion': script.seleniumVersion,
+            'stopRequested': false,
+            'initialVars': row
+          };
+          sauce.runall.runs.push(new_run);
+          (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
         }
-        for (var j = 0; j < settings.sel2.length; j++) {
-          if (script.seleniumVersion == builder.selenium2) {
-            var name = sauce.runall.scriptNames[scriptIndexes[i]] + " " + settings.sel2[j].name;
-            if (rows.length > 1) {
-              name += " " + _t('row', rowIndex);
-            }
-            var isMac = settings.sel2[j].platform2.startsWith("Mac");
-            var new_run = {
-              'name': name,
-              'script': script,
-              'settings': settings.sel2[j],
-              'index': scriptIndexes[i],
-              'sessionId': null,
-              'complete': false,
-              'runIndex': ri++,
-              'mac': isMac,
-              'playbackRun': null,
-              'seleniumVersion': script.seleniumVersion,
-              'stopRequested': false,
-              'initialVars': row
-            };
-            sauce.runall.runs.push(new_run);
-            (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
+      }
+    }
+    
+    for (var settingsIndex = 0; settingsIndex < settings.sel2.length; settingsIndex++) {
+      for (var scriptIndex = 0; scriptIndex < scriptIndexes.length; scriptIndex++) {
+        var script = builder.suite.scripts[scriptIndexes[scriptIndex]];
+        if (script.seleniumVersion != builder.selenium2) { continue; }
+        var rows = scriptsIndexToRows[scriptIndex];
+        for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          var row = rows[rowIndex];
+          var name = sauce.runall.scriptNames[scriptIndexes[scriptIndex]] + " " + settings.sel2[settingsIndex].name;
+          if (rows.length > 1) {
+            name += " " + _t('row', rowIndex);
           }
+          var isMac = settings.sel2[settingsIndex].platform2.startsWith("Mac");
+          var new_run = {
+            'name': name,
+            'script': script,
+            'settings': settings.sel2[settingsIndex],
+            'index': scriptIndexes[scriptIndex],
+            'sessionId': null,
+            'complete': false,
+            'runIndex': ri++,
+            'mac': isMac,
+            'playbackRun': null,
+            'seleniumVersion': script.seleniumVersion,
+            'stopRequested': false,
+            'initialVars': row
+          };
+          sauce.runall.runs.push(new_run);
+          (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
         }
-      } // End loop over rows
-    } // End loop over scripts
+      }
+    }
       
     sauce.runall.info_p = newNode('p', {id:'infop'}, _t('running_scripts'));
   
