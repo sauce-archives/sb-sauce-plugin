@@ -617,7 +617,15 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
           var preserveRunSession = run.preserveRunSession;
           
           if (run.reuseSession) {
-            run.playbackRun = builder.selenium1.rcPlayback.runReusing(run.prevRun.playbackRun, postRunCallback, jobStartedCallback, stepStateCallback, initialVars, pausedCallback, preserveRunSession);
+            run.playbackRun = builder.selenium1.rcPlayback.runReusing(
+              run.prevRun.playbackRun,
+              postRunCallback,
+              jobStartedCallback,
+              stepStateCallback,
+              initialVars,
+              pausedCallback,
+              preserveRunSession
+            );
           } else {
             run.playbackRun = builder.selenium1.rcPlayback.run(
               settings,
@@ -658,51 +666,85 @@ sauce.runSel2ScriptWithSettings = function(result, callback, run) {
             return;
           }
           if (!sauce.doparallel) { builder.views.script.onStartRCPlayback(); }
-          run.playbackRun = builder.selenium2.rcPlayback.run(
-            {
-              hostPort: result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
-              browserstring: result.browserstring2,
-              browserversion: result.browserversion2,
-              platform: result.platform2
-            },
-            // Postrun callback
-            function (runResult) {
-              if (!sauce.doparallel) { builder.views.script.onEndRCPlayback(); }
-              var data = null;
-              if (runResult.success || !runResult.errormessage) {
-                data = {"passed": runResult.success};
-              } else {
-                data = {"passed": runResult.success, 'custom-data': {'playback-error': runResult.errormessage}};
-              }
-              jQuery.ajax("https://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/" + result.username + '/jobs/' + run.sessionId, {
-                "cache": true,
-                "type": "PUT",
-                "contentType": "application/json",
-                "data": JSON.stringify(data)
-              });
-              if (callback) {
-                callback(runResult);
-              }
-            },
-            // Start job callback
-            function(response) {
-              if (!sauce.doparallel) { builder.views.script.onConnectionEstablished(); }
-              run.sessionId = response.sessionId;
-              if (sauce.getAutoShowJobPage()) {
-                window.open("http://saucelabs.com/jobs/" + response.sessionId,'_newtab');
-              } else if (!sauce.doparallel) {
-                var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
-                  newNode('a', {'href': "http://saucelabs.com/jobs/" + response.sessionId, 'target': '_newtab'}, "Show job info")
-                );
-                builder.dialogs.show(lnk);
-                var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
-                builder.views.script.addClearResultsListener(hide);
-              }
-            },
-            sauce.doparallel ? function(r, script, step, stepIndex, state, message, error, percentProgress) { sauce.runall.updateScriptPlaybackState(run.runIndex, r, script, step, stepIndex, state, message, error, percentProgress); } : builder.stepdisplay.updateStepPlaybackState,
-            run.initialVars,
-            sauce.doparallel ? null : builder.views.script.onPauseRCPlayback
-          );
+          
+          var settings = {
+            hostPort: result.username + ":" + result.accesskey + "@ondemand.saucelabs.com:80",
+            browserstring: result.browserstring2,
+            browserversion: result.browserversion2,
+            platform: result.platform2
+          };
+          
+          var postRunCallback = function (runResult) {
+            if (!sauce.doparallel) { builder.views.script.onEndRCPlayback(); }
+            var data = null;
+            if (runResult.success || !runResult.errormessage) {
+              data = {"passed": runResult.success};
+            } else {
+              data = {"passed": runResult.success, 'custom-data': {'playback-error': runResult.errormessage}};
+            }
+            jQuery.ajax("https://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/" + result.username + '/jobs/' + run.sessionId, {
+              "cache": true,
+              "type": "PUT",
+              "contentType": "application/json",
+              "data": JSON.stringify(data)
+            });
+            if (callback) {
+              callback(runResult);
+            }
+          };
+          
+          var jobStartedCallback = function(response) {
+            if (!sauce.doparallel) { builder.views.script.onConnectionEstablished(); }
+            run.sessionId = response.sessionId;
+            if (sauce.getAutoShowJobPage()) {
+              window.open("http://saucelabs.com/jobs/" + response.sessionId,'_newtab');
+            } else if (!sauce.doparallel) {
+              var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
+                newNode('a', {'href': "http://saucelabs.com/jobs/" + response.sessionId, 'target': '_newtab'}, "Show job info")
+              );
+              builder.dialogs.show(lnk);
+              var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
+              builder.views.script.addClearResultsListener(hide);
+            }
+          };
+          if (run.reuseSession) {
+            jobStartedCallback = function() {};
+          }
+          
+          var stepStateCallback = builder.stepdisplay.updateStepPlaybackState;
+          if (sauce.doparallel) {
+            stepStateCallback = function(r, script, step, stepIndex, state, message, error, percentProgress) {
+              sauce.runall.updateScriptPlaybackState(run.runIndex, r, script, step, stepIndex, state, message, error, percentProgress);
+            };
+          }
+          
+          var initialVars = run.initialVars;
+          
+          var pausedCallback = sauce.doparallel ? null : builder.views.script.onPauseRCPlayback;
+          
+          var preserveRunSession = run.preserveRunSession;
+          
+          if (run.reuseSession) {
+            run.playbackRun = builder.selenium2.rcPlayback.runReusing(
+              run.prevRun.playbackRun,
+              postRunCallback,
+              jobStartedCallback,
+              stepStateCallback,
+              initialVars,
+              pausedCallback,
+              preserveRunSession
+            );
+          } else {
+            run.playbackRun = builder.selenium2.rcPlayback.run(
+              settings,
+              postRunCallback,
+              jobStartedCallback,
+              stepStateCallback,
+              initialVars,
+              pausedCallback,
+              preserveRunSession
+            );
+          }
         }
       },
       error: function(xhr, textStatus, errorThrown) {
@@ -936,6 +978,7 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
             'reuseSession': builder.shareSuiteState && !firstSuiteRun,
             'preserveRunSession': builder.shareSuiteState && !lastSuiteRun
           };
+          prevRun = new_run;
           sauce.runall.runs.push(new_run);
           (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
         }
