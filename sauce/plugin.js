@@ -551,57 +551,84 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
             return;
           }
           if (!sauce.doparallel) { builder.views.script.onStartRCPlayback(); }
-          run.playbackRun = builder.selenium1.rcPlayback.run(
-            {
-              hostPort: "ondemand.saucelabs.com:80",
-              browserstring: JSON.stringify({
-                'username':        result.username,
-                'access-key':      result.accesskey,
-                'os':              result.platform1,
-                'browser':         result.browserstring1,
-                'browser-version': result.browserversion1,
-                'name':            name
-              }),
-            },
-            // Postrun callback
-            function (runResult) {
-              if (!sauce.doparallel) { builder.views.script.onEndRCPlayback(); }
-              var data = null;
-              if (runResult.success || !runResult.errormessage) {
-                data = {"passed": runResult.success};
-              } else {
-                data = {"passed": runResult.success, 'custom-data': {'playback-error': runResult.errormessage}};
-              }
-              jQuery.ajax("https://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/" + result.username + '/jobs/' + run.sessionId, {
-                "cache": true,
-                "type": "PUT",
-                "contentType": "application/json",
-                "data": JSON.stringify(data)
-              });
-              if (callback) {
-                callback(runResult);
-              }
-            },
-            // Start job callback
-            function(rcResponse) {
-              if (!sauce.doparallel) { builder.views.script.onConnectionEstablished(); }
-              var sessionId = rcResponse.substring(3);
-              run.sessionId = sessionId;
-              if (sauce.getAutoShowJobPage()) {
-                window.open("http://saucelabs.com/tests/" + sessionId,'_newtab');
-              } else if (!sauce.doparallel) {
-                var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
-                  newNode('a', {'href': "http://saucelabs.com/jobs/" + sessionId, 'target': '_newtab'}, "Show job info")
-                );
-                builder.dialogs.show(lnk);
-                var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
-                builder.views.script.addClearResultsListener(hide);
-              }
-            },
-            sauce.doparallel ? function(r, script, step, stepIndex, state, message, error, percentProgress) { sauce.runall.updateScriptPlaybackState(run.runIndex, r, script, step, stepIndex, state, message, error, percentProgress); } : builder.stepdisplay.updateStepPlaybackState,
-            run.initialVars,
-            sauce.doparallel ? null : builder.views.script.onPauseRCPlayback
-          );
+          
+          var settings = {
+            hostPort: "ondemand.saucelabs.com:80",
+            browserstring: JSON.stringify({
+              'username':        result.username,
+              'access-key':      result.accesskey,
+              'os':              result.platform1,
+              'browser':         result.browserstring1,
+              'browser-version': result.browserversion1,
+              'name':            name
+            })
+          };
+          
+          var postRunCallback = function (runResult) {
+            if (!sauce.doparallel) { builder.views.script.onEndRCPlayback(); }
+            var data = null;
+            if (runResult.success || !runResult.errormessage) {
+              data = {"passed": runResult.success};
+            } else {
+              data = {"passed": runResult.success, 'custom-data': {'playback-error': runResult.errormessage}};
+            }
+            jQuery.ajax("https://" + result.username + ":" + result.accesskey + "@saucelabs.com/rest/v1/" + result.username + '/jobs/' + run.sessionId, {
+              "cache": true,
+              "type": "PUT",
+              "contentType": "application/json",
+              "data": JSON.stringify(data)
+            });
+            if (callback) {
+              callback(runResult);
+            }
+          };
+          
+          var jobStartedCallback = function(rcResponse) {
+            if (!sauce.doparallel) { builder.views.script.onConnectionEstablished(); }
+            var sessionId = rcResponse.substring(3);
+            run.sessionId = sessionId;
+            if (sauce.getAutoShowJobPage()) {
+              window.open("http://saucelabs.com/tests/" + sessionId,'_newtab');
+            } else if (!sauce.doparallel) {
+              var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
+                newNode('a', {'href': "http://saucelabs.com/jobs/" + sessionId, 'target': '_newtab'}, "Show job info")
+              );
+              builder.dialogs.show(lnk);
+              var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
+              builder.views.script.addClearResultsListener(hide);
+            }
+          };
+          if (run.reuseSession) {
+            jobStartedCallback = function() {};
+          }
+          
+          var stepStateCallback = builder.stepdisplay.updateStepPlaybackState;
+          
+          if (sauce.doparallel) {
+            stepStateCallback = function(r, script, step, stepIndex, state, message, error, percentProgress) {
+              sauce.runall.updateScriptPlaybackState(run.runIndex, r, script, step, stepIndex, state, message, error, percentProgress);
+            };
+          }
+          
+          var initialVars = run.initialVars;
+          
+          var pausedCallback = sauce.doparallel ? null : builder.views.script.onPauseRCPlayback;
+          
+          var preserveRunSession = run.preserveRunSession;
+          
+          if (run.reuseSession) {
+            run.playbackRun = builder.selenium1.rcPlayback.runReusing(run.prevRun.playbackRun, postRunCallback, jobStartedCallback, stepStateCallback, initialVars, pausedCallback, preserveRunSession);
+          } else {
+            run.playbackRun = builder.selenium1.rcPlayback.run(
+              settings,
+              postRunCallback,
+              jobStartedCallback,
+              stepStateCallback,
+              initialVars,
+              pausedCallback,
+              preserveRunSession
+            );
+          }
         }
       },
       error: function(xhr, textStatus, errorThrown) {
@@ -777,7 +804,7 @@ function createDerivedInfo(name) {
       "    public @Rule TestName testName = new TestName();\n" +
       "    @Override public String getSessionId() { return sessionId; }\n"
   });
-};
+}
 
 for (var i = 0; i < to_add.length; i++) {
   createDerivedInfo(to_add[i]);
@@ -837,7 +864,8 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
     sauce.runall.mac_runs = [];
     sauce.runall.nonmac_runs = [];
     
-    var ri = 0;
+    var runIndex = 0;
+    var prevRun = null;
     for (var settingsIndex = 0; settingsIndex < settings.sel1.length; settingsIndex++) {
       for (var scriptIndex = 0; scriptIndex < scriptIndexes.length; scriptIndex++) {
         var script = builder.suite.scripts[scriptIndexes[scriptIndex]];
@@ -850,24 +878,31 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
             name += " " + _t('row', rowIndex);
           }
           var isMac = settings.sel1[settingsIndex].platform1.startsWith("Mac");
+          var firstSuiteRun = scriptIndex == 0 && rowIndex == 0;
+          var lastSuiteRun = scriptIndex == scriptIndexes.length - 1 && rowIndex == rows.length - 1;
           var new_run = {
             'name': name,
             'script': script,
             'settings': settings.sel1[settingsIndex],
-            'index': scriptIndexes[settingsIndex],
+            'index': scriptIndexes[scriptIndex],
             'sessionId': null,
             'complete': false,
-            'runIndex': ri++,
+            'runIndex': runIndex++,
             'mac': isMac,
             'playbackRun': null,
             'seleniumVersion': script.seleniumVersion,
             'stopRequested': false,
-            'initialVars': row
+            'initialVars': row,
+            'prevRun': prevRun,
+            'reuseSession': builder.shareSuiteState && !firstSuiteRun,
+            'preserveRunSession': builder.shareSuiteState && !lastSuiteRun
           };
+          prevRun = new_run;
           sauce.runall.runs.push(new_run);
           (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
         }
       }
+      prevRun = null;
     }
     
     for (var settingsIndex = 0; settingsIndex < settings.sel2.length; settingsIndex++) {
@@ -882,6 +917,8 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
             name += " " + _t('row', rowIndex);
           }
           var isMac = settings.sel2[settingsIndex].platform2.startsWith("Mac");
+          var firstSuiteRun = scriptIndex == 0 && rowIndex == 0;
+          var lastSuiteRun = scriptIndex == scriptIndexes.length - 1 && rowIndex == rows.length - 1;
           var new_run = {
             'name': name,
             'script': script,
@@ -889,17 +926,21 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
             'index': scriptIndexes[scriptIndex],
             'sessionId': null,
             'complete': false,
-            'runIndex': ri++,
+            'runIndex': runIndex++,
             'mac': isMac,
             'playbackRun': null,
             'seleniumVersion': script.seleniumVersion,
             'stopRequested': false,
-            'initialVars': row
+            'initialVars': row,
+            'prevRun': prevRun,
+            'reuseSession': builder.shareSuiteState && !firstSuiteRun,
+            'preserveRunSession': builder.shareSuiteState && !lastSuiteRun
           };
           sauce.runall.runs.push(new_run);
           (isMac ? sauce.runall.mac_runs : sauce.runall.nonmac_runs).push(new_run);
         }
       }
+      prevRun = null;
     }
       
     sauce.runall.info_p = newNode('p', {id:'infop'}, _t('running_scripts'));
@@ -983,7 +1024,7 @@ sauce.runall.updateScriptPlaybackState = function(runIndex, run, script, step, s
   {
     sauce.runall.setprogress(runIndex, 1 + (stepIndex + 1) * 99 / script.steps.length);
   }
-}
+};
 
 sauce.runall.setprogress = function(runIndex, percent) {
   if (percent == 0) {
@@ -1028,7 +1069,6 @@ sauce.runall.processResult = function(result, runIndex) {
     }
   }
   sauce.runall.runs[runIndex].complete = true;
-  sauce.runall.runs[runIndex].playbackRun = null;
   sauce.runall.runNext(sauce.runall.runs[runIndex].mac);
 };
 
@@ -1037,17 +1077,17 @@ sauce.runall.hide = function () {
 };
 
 sauce.runall.allComplete = function() {
-  if (sauce.runall.requestStop) {
+  /*if (sauce.runall.requestStop) {
     for (var i = 0; i < sauce.runall.runs.length; i++) {
       if (sauce.runall.runs[i].playbackRun) { return false; }
     }
     return true;
-  } else {
+  } else {*/
     for (var i = 0; i < sauce.runall.runs.length; i++) {
       if (!sauce.runall.runs[i].complete) { return false; }
     }
     return true;
-  }
+  //}
 };
 
 sauce.runall.checkComplete = function() {
