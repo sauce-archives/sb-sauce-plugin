@@ -565,7 +565,9 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
           };
           
           var postRunCallback = function (runResult) {
+            run.complete = true;
             if (!sauce.doparallel) { builder.views.script.onEndRCPlayback(); }
+            sauce.runall.checkComplete();
             var data = null;
             if (runResult.success || !runResult.errormessage) {
               data = {"passed": runResult.success};
@@ -675,7 +677,9 @@ sauce.runSel2ScriptWithSettings = function(result, callback, run) {
           };
           
           var postRunCallback = function (runResult) {
+            run.complete = true;
             if (!sauce.doparallel) { builder.views.script.onEndRCPlayback(); }
+            sauce.runall.checkComplete();
             var data = null;
             if (runResult.success || !runResult.errormessage) {
               data = {"passed": runResult.success};
@@ -1120,17 +1124,16 @@ sauce.runall.hide = function () {
 };
 
 sauce.runall.allComplete = function() {
-  /*if (sauce.runall.requestStop) {
+  if (sauce.runall.requestStop) {
     for (var i = 0; i < sauce.runall.runs.length; i++) {
-      if (sauce.runall.runs[i].playbackRun) { return false; }
+      if (!sauce.runall.runs[i].complete && sauce.runall.runs[i].playbackRun) { return false; }
     }
-    return true;
-  } else {*/
+  } else {
     for (var i = 0; i < sauce.runall.runs.length; i++) {
       if (!sauce.runall.runs[i].complete) { return false; }
     }
-    return true;
-  //}
+  }
+  return true;
 };
 
 sauce.runall.checkComplete = function() {
