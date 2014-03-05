@@ -315,7 +315,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                       newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-showjobpage'}), _t('__sauce_auto_show_job'))
                     ),
                     newNode('tr',
-                      newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-parallel'}), builder.shareSuiteState ? _t('__sauce_parallel_disabled') : _t('__sauce_parallel', sauce.concurrency))
+                      newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-parallel'}), builder.doShareSuiteState() ? _t('__sauce_parallel_disabled') : _t('__sauce_parallel', sauce.concurrency))
                     )
                   ),
                   newNode('a', {'href': '#', 'class': 'button', 'id': 'sauce-ok', 'click': function() {
@@ -346,7 +346,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     }
                     sauce.setAutoShowJobPage(!!jQuery('#sauce-showjobpage').attr('checked'));
                     sauce.setDoParallel(!!jQuery('#sauce-parallel').attr('checked'));
-                    sauce.doparallel = !!jQuery('#sauce-parallel').attr('checked') && !builder.shareSuiteState;
+                    sauce.doparallel = !!jQuery('#sauce-parallel').attr('checked') && !builder.doShareSuiteState();
                     if (sauce.doparallel) {
                       sauce.storeAndDisableBreakpointsState();
                     }
@@ -375,7 +375,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                 jQuery('#sauce-parallel').attr('checked', 'checked');
                 sauce.restoreParallel = false;
               }
-              if (builder.shareSuiteState) {
+              if (builder.doShareSuiteState()) {
                 jQuery('#sauce-parallel').attr('disabled', 'disabled');
               }
               // Populate dialog.
@@ -936,8 +936,8 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
             'stopRequested': false,
             'initialVars': row,
             'prevRun': prevRun,
-            'reuseSession': builder.shareSuiteState && !firstSuiteRun,
-            'preserveRunSession': builder.shareSuiteState && !lastSuiteRun
+            'reuseSession': builder.doShareSuiteState() && !firstSuiteRun,
+            'preserveRunSession': builder.doShareSuiteState() && !lastSuiteRun
           };
           prevRun = new_run;
           sauce.runall.runs.push(new_run);
@@ -975,8 +975,8 @@ sauce.runall.run = function(settings, runall, username, accesskey) {
             'stopRequested': false,
             'initialVars': row,
             'prevRun': prevRun,
-            'reuseSession': builder.shareSuiteState && !firstSuiteRun,
-            'preserveRunSession': builder.shareSuiteState && !lastSuiteRun
+            'reuseSession': builder.doShareSuiteState() && !firstSuiteRun,
+            'preserveRunSession': builder.doShareSuiteState() && !lastSuiteRun
           };
           prevRun = new_run;
           sauce.runall.runs.push(new_run);
