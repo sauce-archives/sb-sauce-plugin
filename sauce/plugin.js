@@ -24,6 +24,12 @@ m.__sauce_account_exhausted = "Your OnDemand account has run out of minutes.";
 m.__sauce_ondemand_connection_error = "Unable to connect to OnDemand: {0}";
 m.__sauce_run_stopped = "Stopped";
 m.__sauce_stopping = "Stopping...";
+m.__sauce_configs = "Saved configs";
+m.__sauce_add_config = "Save as config...";
+m.__sauce_delete_config = "Delete";
+m.__sauce_config_name_prompt = "Choose a name for this configuration";
+m.__sauce_confirm_delete_config = "Really delete this configuration?";
+m.__sauce_config_replace_prompt = "Replace the configuration named {0}?";
 // de
 m = builder.translate.locales['de'].mapping;
 m.__sauce_settings = "Sauce: Einstellungen";
@@ -46,6 +52,12 @@ m.__sauce_account_exhausted = "Das OnDemand-Konto hat keine Minuten übrig.";
 m.__sauce_ondemand_connection_error = "Verbindung zum Server fehlgeschlagen: {0}";
 m.__sauce_run_stopped = "Gestoppt";
 m.__sauce_stopping = "Stoppe...";
+m.__sauce_configs = "Konfigurationen";
+m.__sauce_add_config = "Als Konfiguration speichern...";
+m.__sauce_delete_config = "Konfiguration löschen";
+m.__sauce_config_name_prompt = "Konfigurations-Name";
+m.__sauce_confirm_delete_config = "Konfiguration löschen?";
+m.__sauce_config_replace_prompt = "Die Konfiguration \"{0}\" ersetzen?";
 
 sauce.shutdown = function() {
 
@@ -117,6 +129,22 @@ sauce.getOldCredentials = function() {
 sauce.setOldCredentials = function(username, accesskey) {
   bridge.prefManager.setCharPref("extensions.seleniumbuilder.plugins.sauce.username", username);
   bridge.prefManager.setCharPref("extensions.seleniumbuilder.plugins.sauce.accesskey", accesskey);
+};
+
+sauce.getBrowserConfigsPrefs = function(sel2) {
+  var prefName = "extensions.seleniumbuilder.plugins.sauce.browserConfigs";
+  try {
+    return JSON.parse(bridge.prefManager.prefHasUserValue(prefName) ? bridge.prefManager.getCharPref(prefName) : "[]");
+  } catch (e) {
+    return [];
+  }
+};
+
+sauce.setBrowserConfigsPrefs = function(configs) {
+  var prefName = "extensions.seleniumbuilder.plugins.sauce.browserConfigs";
+  try {
+    bridge.prefManager.setCharPref(prefName, JSON.stringify(configs));
+  } catch (e) { /* ignore */ }
 };
 
 sauce.getBrowserOptionPrefs = function(sel2) {
@@ -254,6 +282,8 @@ sauce.getLimits = function(username, accesskey, cb) {
 
 sauce.settingspanel.show = function(sel1, sel2, callback) {
   if (sauce.settingspanel.open) { return; }
+  sauce.showSel1 = sel1;
+  sauce.showSel2 = sel2;
   sauce.settingspanel.open = true;
   jQuery('#edit-rc-connecting').show();
   jQuery('#edit-panel').css('height', '29px');
@@ -297,19 +327,27 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                       newNode('td', ""),
                       newNode('td', newNode('a', {'href': 'http://saucelabs.com/signup', 'target': '_blank'}, "(" + _t('__sauce_get_account') + ")"))
                     ),
+                    newNode('tr', {'id': 'sauce-browser-configs-list-tr'},
+                      newNode('td', _t('__sauce_configs')),
+                      newNode('td', newNode('select', {'id': 'sauce-browser-configs-list', 'change': function() { sauce.browserConfigSelected(sauceBrowsersTree1, sauceBrowsersTree2); }}), " ", newNode('a', {'class': 'button', 'id': 'sauce-browser-configs-delete', 'click': sauce.deleteBrowserConfig }, _t('__sauce_delete_config')))
+                    ),
                     newNode('tr', {'id': 'sauce-browser-1-tr'},
                       newNode('td', {'style': 'vertical-align: top;'}, _t('__sauce_browser_1') + " "),
                       newNode('td',
                         newNode('div', {'id': 'sauce-browser-1-list'}),
-                        newNode('a', {'class': 'button', 'id': 'sauce-browser-1-list-add', 'click': function() {sauce.addBrowserListEntry(false, sauceBrowsersTree1, sauceBrowsersTree2);}}, _t('__sauce_add_config_line'))
+                        newNode('p', newNode('a', {'class': 'button', 'id': 'sauce-browser-1-list-add', 'click': function() {sauce.addBrowserListEntry(false, sauceBrowsersTree1, sauceBrowsersTree2);}}, _t('__sauce_add_config_line')))
                       )
                     ),
                     newNode('tr', {'id': 'sauce-browser-2-tr'},
                       newNode('td', {'style': 'vertical-align: top;'}, _t('__sauce_browser_2') + " "),
                       newNode('td',
                         newNode('div', {'id': 'sauce-browser-2-list'}),
-                        newNode('a', {'class': 'button', 'id': 'sauce-browser-2-list-add', 'click': function() {sauce.addBrowserListEntry(true, sauceBrowsersTree1, sauceBrowsersTree2);}}, _t('__sauce_add_config_line'))
+                        newNode('p', newNode('a', {'class': 'button', 'id': 'sauce-browser-2-list-add', 'click': function() {sauce.addBrowserListEntry(true, sauceBrowsersTree1, sauceBrowsersTree2);}}, _t('__sauce_add_config_line')))
                       )
+                    ),
+                    newNode('tr', {'id': 'sauce-browser-configs-buttons-tr'},
+                      newNode('td', ''),
+                      newNode('td', newNode('a', {'class': 'button', 'id': 'sauce-browser-configs-add', 'click': function() { sauce.addBrowserConfig(); } }, _t('__sauce_add_config')))
                     ),
                     newNode('tr',
                       newNode('td', {'colspan': 2}, newNode('input', {'type':'checkbox', 'id': 'sauce-showjobpage'}), _t('__sauce_auto_show_job'))
@@ -406,6 +444,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
               } else {
                 jQuery('#sauce-browser-2-tr').remove();
               }
+              sauce.populateConfigsOptions();
             },
             error: function(xhr, textStatus, errorThrown) {
               jQuery('#edit-rc-connecting').hide();
@@ -420,6 +459,90 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
       }
     }
   );
+};
+
+sauce.addBrowserConfig = function() {
+  var cname = prompt(_t('__sauce_config_name_prompt'));
+  if (cname && cname.length > 0) {
+    var cfg = {
+      'name': cname
+    };
+    var dropdownValues = [];
+    jQuery('#sauce-browser-1-list select').each(function(i, dropdown) {
+      dropdownValues.push(jQuery(dropdown).val());
+    });
+    var browsers1 = [];
+    for (var i = 0; i < dropdownValues.length; i += 3) {
+      browsers1.push([dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]]);
+    }
+    dropdownValues = [];
+    jQuery('#sauce-browser-2-list select').each(function(i, dropdown) {
+      dropdownValues.push(jQuery(dropdown).val());
+    });
+    var browsers2 = [];
+    for (var i = 0; i < dropdownValues.length; i += 3) {
+      browsers2.push([dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]]);
+    }
+    cfg.sel1 = browsers1;
+    cfg.sel2 = browsers2;
+    
+    var configs = sauce.getBrowserConfigsPrefs();
+    
+    var sameNameIndex = -1;
+    for (var i = 0; i < configs.length; i++) { if (configs[i].name == cname) { sameNameIndex = i; }}
+    if (sameNameIndex != -1) {
+      if (confirm(_t('__sauce_config_replace_prompt', cname))) {
+        configs[sameNameIndex] = cfg;
+        sauce.setBrowserConfigsPrefs(configs);
+        jQuery('#sauce-browser-configs-list').val(sameNameIndex);
+      }
+    } else {
+      configs.push(cfg);
+      sauce.setBrowserConfigsPrefs(configs);
+      jQuery('#sauce-browser-configs-list').append(newNode('option', {'value': configs.length - 1}, cfg.name));
+      jQuery('#sauce-browser-configs-list').val(configs.length - 1);
+    }
+  }
+};
+
+sauce.browserConfigSelected = function(sauceBrowsersTree1, sauceBrowsersTree2) {
+  var indexVal = parseInt(jQuery('#sauce-browser-configs-list').val());
+  if (indexVal > -1) {
+    var configs = sauce.getBrowserConfigsPrefs();
+    jQuery('#sauce-browser-1-list div').remove();
+    jQuery('#sauce-browser-2-list div').remove();
+    if (sauce.showSel1) {
+      configs[indexVal].sel1.forEach(function(cfg) {
+        sauce.addBrowserListEntry(false, sauceBrowsersTree1, sauceBrowsersTree2, cfg[0], cfg[1], cfg[2]);
+      });
+    }
+    if (sauce.showSel2) {
+      configs[indexVal].sel2.forEach(function(cfg) {
+        sauce.addBrowserListEntry(true, sauceBrowsersTree1, sauceBrowsersTree2, cfg[0], cfg[1], cfg[2]);
+      });
+    }
+  }
+};
+
+sauce.deleteBrowserConfig = function() {
+  var currentConfigIndex = jQuery('#sauce-browser-configs-list').val();
+  if (currentConfigIndex > -1 && confirm(_t('__sauce_confirm_delete_config'))) {
+    jQuery('#sauce-browser-configs-list option').remove();
+    var configs = sauce.getBrowserConfigsPrefs();
+    configs.splice(currentConfigIndex, 1);
+    sauce.setBrowserConfigsPrefs(configs);
+    sauce.populateConfigsOptions();
+  }
+};
+
+sauce.populateConfigsOptions = function() {
+  var cfs = sauce.getBrowserConfigsPrefs();
+  var index = 0;
+  jQuery('#sauce-browser-configs-list').append(newNode('option', {'value': -1}, '--'));
+  cfs.forEach(function(cfg) {
+    jQuery('#sauce-browser-configs-list').append(newNode('option', {'value': index}, cfg.name));
+    index++;
+  });
 };
 
 sauce.browserOptionName = function(entry) {
