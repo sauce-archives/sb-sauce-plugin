@@ -30,6 +30,10 @@ m.__sauce_delete_config = "Delete";
 m.__sauce_config_name_prompt = "Choose a name for this configuration";
 m.__sauce_confirm_delete_config = "Really delete this configuration?";
 m.__sauce_config_replace_prompt = "Replace the configuration named {0}?";
+m.__sauce_tunnels = "Tunnels";
+m.__sauce_reload = "Reload";
+m.__sauce_reloading = "Loading...";
+m.__sauce_default = "Default";
 // de
 m = builder.translate.locales['de'].mapping;
 m.__sauce_settings = "Sauce: Einstellungen";
@@ -58,6 +62,10 @@ m.__sauce_delete_config = "Konfiguration löschen";
 m.__sauce_config_name_prompt = "Konfigurations-Name";
 m.__sauce_confirm_delete_config = "Konfiguration löschen?";
 m.__sauce_config_replace_prompt = "Die Konfiguration \"{0}\" ersetzen?";
+m.__sauce_tunnels = "Tunnels";
+m.__sauce_reload = "Neu laden";
+m.__sauce_reloading = "Wird geladen...";
+m.__sauce_default = "Standard";
 
 sauce.shutdown = function() {
 
@@ -263,6 +271,84 @@ sauce.addBrowserListEntry = function(sel2, sauceBrowsersTree1, sauceBrowsersTree
   }
 };
 
+// Callback takes success, list.
+sauce.getTunnels = function(username, accesskey, cb) {
+  jQuery.ajax(
+    "https://" + username + ":" + accesskey + "@saucelabs.com/rest/v1/" + username + "/tunnels",
+    {
+      "headers": {"Authorization": "Basic " + btoa(username + ":" + accesskey)},
+      success: function(id_list) {
+        if (id_list.length == 0) {
+          cb(true, []);
+          return;
+        }
+        var loaded = 0;
+        var detail_list = [];
+        id_list.forEach(function(id) {
+          jQuery.ajax(
+            "https://" + username + ":" + accesskey + "@saucelabs.com/rest/v1/" + username + "/tunnels/" + id,
+            {
+              "headers": {"Authorization": "Basic " + btoa(username + ":" + accesskey)},
+              success: function(details) {
+                detail_list.push(details);
+                loaded++;
+                if (loaded >= id_list.length) {
+                  cb(true, detail_list);
+                }
+              },
+              error: function() {
+                loaded++;
+                if (loaded >= id_list.length) {
+                  cb(true, detail_list);
+                }
+              }
+            }
+          );
+        });
+      },
+      error: function() {
+        cb(false);
+      }
+    }
+  );
+};
+
+sauce.updateTunnels = function(credentials) {
+  sauce.tunnelsLoaded = false;
+  jQuery('#sauce-tunnels-reload').removeClass('button').html(_t('__sauce_reloading'));
+  sauce.getTunnels(credentials.username, credentials.accesskey, function(success, l) {
+    jQuery('#sauce-tunnels-list').html('');
+    if (success) {
+      jQuery('#sauce-tunnels-title').css('color', 'black');
+      var containsDefault = false;
+      var l2 = l.filter(function(tunnelInfo) {
+        if (!tunnelInfo.tunnel_identifier) {
+          containsDefault = true;
+          return false;
+        }
+        return true;
+      });
+      if (containsDefault) {
+        jQuery('#sauce-tunnels-list').append(newNode('option', {'value': '----------'}, _t('__sauce_default')));
+      } else {
+        jQuery('#sauce-tunnels-list').append(newNode('option', {'value': '----------'}, '--'));
+      }
+      l2.forEach(function (tunnelInfo) {
+        jQuery('#sauce-tunnels-list').append(newNode('option', {'value': tunnelInfo.tunnel_identifier}, tunnelInfo.tunnel_identifier));
+      });
+      sauce.tunnelInfos = l2;
+    } else {
+      jQuery('#sauce-tunnels-title').css('color', '#333333');
+      sauce.tunnelInfos = [];
+    }
+    sauce.tunnelsLoaded = true;
+    jQuery('#sauce-tunnels-reload').addClass('button').html(_t('__sauce_reload'));
+  });
+};
+
+sauce.tunnelsLoaded = false;
+sauce.tunnelInfos = [];
+
 sauce.getLimits = function(username, accesskey, cb) {
   jQuery.ajax(
     "https://" + username + ":" + accesskey + "@saucelabs.com/rest/v1/" + username + "/limits",
@@ -301,6 +387,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
               jQuery('#edit-rc-connecting').hide();
               jQuery('#edit-panel').css('height', '');
               var credentials = sauce.getCredentials();
+              
               sauce.settingspanel.dialog =
                 newNode('div', {'class': 'dialog'},
                   newNode('h3', _t('__sauce_settings')),
@@ -326,6 +413,10 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     newNode('tr', {'id': 'sauce-account-link'},
                       newNode('td', ""),
                       newNode('td', newNode('a', {'href': 'http://saucelabs.com/signup', 'target': '_blank'}, "(" + _t('__sauce_get_account') + ")"))
+                    ),
+                    newNode('tr', {'id': 'sauce-tunnels-tr'},
+                      newNode('td', {'style': 'color: #666666', 'id': 'sauce-tunnels-title'}, _t('__sauce_tunnels')),
+                      newNode('td', newNode('select', {'id': 'sauce-tunnels-list'}), " ", newNode('a', {'class': 'button', 'id': 'sauce-tunnels-reload', 'click': function() { if (sauce.tunnelsLoaded) { sauce.updateTunnels(credentials); } }}, _t('__sauce_reload')))
                     ),
                     newNode('tr', {'id': 'sauce-browser-configs-list-tr'},
                       newNode('td', _t('__sauce_configs')),
@@ -445,6 +536,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                 jQuery('#sauce-browser-2-tr').remove();
               }
               sauce.populateConfigsOptions();
+              sauce.updateTunnels(credentials);
             },
             error: function(xhr, textStatus, errorThrown) {
               jQuery('#edit-rc-connecting').hide();
