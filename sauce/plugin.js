@@ -329,12 +329,16 @@ sauce.updateTunnels = function(credentials) {
         return true;
       });
       if (containsDefault) {
-        jQuery('#sauce-tunnels-list').append(newNode('option', {'value': '----------'}, _t('__sauce_default')));
+        jQuery('#sauce-tunnels-list').append(newNode('option', {'value': '--NO TUNNEL--'}, _t('__sauce_default')));
       } else {
-        jQuery('#sauce-tunnels-list').append(newNode('option', {'value': '----------'}, '--'));
+        jQuery('#sauce-tunnels-list').append(newNode('option', {'value': '--NO TUNNEL--'}, '--'));
       }
       l2.forEach(function (tunnelInfo) {
-        jQuery('#sauce-tunnels-list').append(newNode('option', {'value': tunnelInfo.tunnel_identifier}, tunnelInfo.tunnel_identifier));
+        if (tunnelInfo.tunnel_identifier == sauce.last_tunnel_identifier) {
+          jQuery('#sauce-tunnels-list').append(newNode('option', {'value': tunnelInfo.tunnel_identifier, 'selected': '1'}, tunnelInfo.tunnel_identifier));
+        } else {
+          jQuery('#sauce-tunnels-list').append(newNode('option', {'value': tunnelInfo.tunnel_identifier}, tunnelInfo.tunnel_identifier));
+        }
       });
       sauce.tunnelInfos = l2;
     } else {
@@ -348,6 +352,7 @@ sauce.updateTunnels = function(credentials) {
 
 sauce.tunnelsLoaded = false;
 sauce.tunnelInfos = [];
+sauce.last_tunnel_identifier = null;
 
 sauce.getLimits = function(username, accesskey, cb) {
   jQuery.ajax(
@@ -451,6 +456,11 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     var username = jQuery('#sauce-username').val();
                     var accesskey = jQuery('#sauce-accesskey').val();
                     sauce.setCredentials(username, accesskey);
+                    
+                    var tunnel_identifier = jQuery('#sauce-tunnels-list').val();
+                    if (tunnel_identifier == '--NO TUNNEL--') { tunnel_identifier = null; }
+                    sauce.last_tunnel_identifier = tunnel_identifier;
+                    
                     var dropdownValues = [];
                     jQuery('#sauce-browser-1-list select').each(function(i, dropdown) {
                       dropdownValues.push(jQuery(dropdown).val());
@@ -460,7 +470,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     for (var i = 0; i < dropdownValues.length; i += 3) {
                       sauce.setBrowserOptionPrefs(false, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
                       var option = sauce.getBrowserOptionChoice(sauceBrowsersTree1, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
-                      browsers1.push({'username': username, 'accesskey': accesskey, 'browserstring1': option.selenium_name, 'browserversion1': option.short_version, 'platform1': option.os, 'name': [dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]].join(" ")});
+                      browsers1.push({'username': username, 'accesskey': accesskey, 'browserstring1': option.selenium_name, 'browserversion1': option.short_version, 'platform1': option.os, 'name': [dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]].join(" "), 'tunnel_identifier': tunnel_identifier});
                     }
                     dropdownValues = [];
                     jQuery('#sauce-browser-2-list select').each(function(i, dropdown) {
@@ -471,7 +481,7 @@ sauce.settingspanel.show = function(sel1, sel2, callback) {
                     for (var i = 0; i < dropdownValues.length; i += 3) {
                       sauce.setBrowserOptionPrefs(true, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
                       var option = sauce.getBrowserOptionChoice(sauceBrowsersTree2, dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]);
-                      browsers2.push({'username': username, 'accesskey': accesskey, 'browserstring2': option.api_name, 'browserversion2': option.short_version, 'platform2': option.os, 'name': [dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]].join(" ")});
+                      browsers2.push({'username': username, 'accesskey': accesskey, 'browserstring2': option.api_name, 'browserversion2': option.short_version, 'platform2': option.os, 'name': [dropdownValues[i], dropdownValues[i + 1], dropdownValues[i + 2]].join(" "), 'tunnel_identifier': tunnel_identifier});
                     }
                     sauce.setAutoShowJobPage(!!jQuery('#sauce-showjobpage').attr('checked'));
                     sauce.setDoParallel(!!jQuery('#sauce-parallel').attr('checked'));
@@ -767,16 +777,20 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
           }
           if (!sauce.doparallel) { builder.views.script.onStartRCPlayback(); }
           
+          var bstring = {
+            'username':        result.username,
+            'access-key':      result.accesskey,
+            'os':              result.platform1,
+            'browser':         result.browserstring1,
+            'browser-version': result.browserversion1,
+            'name':            name
+          };
+          
+          if (result.tunnel_identifier) { bstring['tunnel-identifier'] = result.tunnel_identifier; }
+          
           var settings = {
             hostPort: "ondemand.saucelabs.com:80",
-            browserstring: JSON.stringify({
-              'username':        result.username,
-              'access-key':      result.accesskey,
-              'os':              result.platform1,
-              'browser':         result.browserstring1,
-              'browser-version': result.browserversion1,
-              'name':            name
-            })
+            browserstring: JSON.stringify(bstring)
           };
           
           var postRunCallback = function (runResult) {
@@ -890,6 +904,10 @@ sauce.runSel2ScriptWithSettings = function(result, callback, run) {
             browserversion: result.browserversion2,
             platform: result.platform2
           };
+          
+          if (result.tunnel_identifier) {
+            settings['tunnel-identifier'] = result.tunnel_identifier;
+          }
           
           var postRunCallback = function (runResult) {
             run.complete = true;
