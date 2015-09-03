@@ -65,10 +65,6 @@ m.__sauce_reload = "Neu laden";
 m.__sauce_reloading = "Wird geladen...";
 m.__sauce_default = "Standard";
 
-sauce.shutdown = function() {
-
-};
-
 sauce.loginManager = Components.classes["@mozilla.org/login-manager;1"].getService(Components.interfaces.nsILoginManager);
 
 sauce.loginInfo = new Components.Constructor(
@@ -416,7 +412,7 @@ sauce.settingspanel.show = function(callback) {
               ),
               newNode('tr', {'id': 'sauce-browser-configs-list-tr'},
                 newNode('td', _t('__sauce_configs')),
-                newNode('td', newNode('select', {'id': 'sauce-browser-configs-list', 'change': function() { sauce.browserConfigSelected(sauceBrowsersTree1, sauceBrowsersTree2); }}), " ", newNode('a', {'class': 'button', 'id': 'sauce-browser-configs-delete', 'click': sauce.deleteBrowserConfig }, _t('__sauce_delete_config')))
+                newNode('td', newNode('select', {'id': 'sauce-browser-configs-list', 'change': function() { sauce.browserConfigSelected(sauceBrowsersTree2); }}), " ", newNode('a', {'class': 'button', 'id': 'sauce-browser-configs-delete', 'click': sauce.deleteBrowserConfig }, _t('__sauce_delete_config')))
               ),
               newNode('tr', {'id': 'sauce-browser-2-tr'},
                 newNode('td', {'style': 'vertical-align: top;'}, _t('__sauce_browser_2') + " "),

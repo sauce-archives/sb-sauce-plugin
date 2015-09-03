@@ -1,6 +1,6 @@
 {
   "headerVersion": 1,
-  "pluginVersion": "1.0",
+  "pluginVersion": "1.0.1",
   "builderMinVersion": "3.0",
   "builderMaxVersion": "3.0.*",
   "identifier": "sauce",
@@ -8,7 +8,6 @@
   "description": "Enables export and playback on Sauce OnDemand.",
   "description_de": "Ermöglicht Export für und Abspielen auf Sauce OnDemand",
   "siteUrl": "http://saucelabs.github.com/sb-sauce-plugin/",
-  "shutdownFunction": "sauce.shutdown",
   "icon": "icon.png",
   "load": [
     "plugin.js"
