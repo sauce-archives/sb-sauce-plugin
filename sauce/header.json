@@ -1,6 +1,6 @@
 {
   "headerVersion": 1,
-  "pluginVersion": "1.0.1",
+  "pluginVersion": "1.0.2",
   "builderMinVersion": "3.0",
   "builderMaxVersion": "3.0.*",
   "identifier": "sauce",
