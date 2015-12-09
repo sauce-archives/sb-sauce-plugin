@@ -819,10 +819,10 @@ sauce.runSel1ScriptWithSettings = function(result, callback, run) {
             var sessionId = rcResponse.substring(3);
             run.sessionId = sessionId;
             if (sauce.getAutoShowJobPage()) {
-              window.open("http://saucelabs.com/tests/" + sessionId,'_newtab');
+              window.open("http://saucelabs.com/beta/tests/" + sessionId,'_newtab');
             } else if (!sauce.doparallel) {
               var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
-                newNode('a', {'href': "http://saucelabs.com/jobs/" + sessionId, 'target': '_newtab'}, "Show job info")
+                newNode('a', {'href': "http://saucelabs.com/beta/tests/" + sessionId, 'target': '_newtab'}, "Show job info")
               );
               builder.dialogs.show(lnk);
               var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
@@ -934,10 +934,10 @@ sauce.runSel2ScriptWithSettings = function(result, callback, run) {
             if (!sauce.doparallel) { builder.views.script.onConnectionEstablished(); }
             run.sessionId = response.sessionId;
             if (sauce.getAutoShowJobPage()) {
-              window.open("http://saucelabs.com/jobs/" + response.sessionId,'_newtab');
+              window.open("http://saucelabs.com/beta/tests/" + response.sessionId,'_newtab');
             } else if (!sauce.doparallel) {
               var lnk = newNode('div', {'class': 'dialog', 'style': 'padding-top: 30px;'},
-                newNode('a', {'href': "http://saucelabs.com/jobs/" + response.sessionId, 'target': '_newtab'}, "Show job info")
+                newNode('a', {'href': "http://saucelabs.com/beta/tests/" + response.sessionId, 'target': '_newtab'}, "Show job info")
               );
               builder.dialogs.show(lnk);
               var hide = function() { jQuery(lnk).remove(); builder.views.script.removeClearResultsListener(hide); };
