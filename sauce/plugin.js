@@ -795,7 +795,7 @@ sauce.runSel2ScriptWithSettings = function(result, callback, run) {
 };
 
 builder.registerPostLoadHook(function() {  
-  builder.gui.menu.addItem('file', _t('__sauce_settings'), 'file-sauce-settings', function() { sauce.settingspanel.show(true, true); });
+  builder.gui.menu.addItem('file', _t('__sauce_settings'), 'file-sauce-settings', function() { sauce.settingspanel.show(); });
 
   builder.gui.menu.addItem('run', _t('__sauce_run_ondemand'), 'run-sauce-ondemand', function() {
     jQuery('#edit-rc-connecting').show();
@@ -823,7 +823,7 @@ for (var name in builder.selenium2.io.lang_infos) {
 function createDerivedInfo(name) {
   builder.selenium2.io.addDerivedLangFormatter(name, {
     name: name + "/Sauce On Demand",
-    get_params: function(script, callback) { sauce.settingspanel.show(/* sel1 */ false, /* sel2 */ true, function(response) {
+    get_params: function(script, callback) { sauce.settingspanel.show(function(response) {
       response = response.sel2[0];
       if (response.browserstring2 == "internet explorer") {
         response.browserstring2 = "internetExplorer";
